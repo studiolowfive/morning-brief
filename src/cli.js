@@ -9,9 +9,10 @@ import { appendJsonl, readJsonl, readJson, readLatestReport, readManualSignals, 
 import { dedupeSignals } from "./dedupe.js";
 import { scoreSignals } from "./scoring.js";
 import { generateReport, selectReportSignals } from "./report.js";
-import { postReport } from "./clickup.js";
+import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
+import { applyLearnedWeights, learnFromReactions, recordPostedSignals } from "./feedback.js";
 
 loadEnv();
 
@@ -98,7 +99,12 @@ async function buildReport({ allSignals = false } = {}) {
   const now = new Date();
 
   let scored = scoreSignals(dedupeSignals([...stored, ...manual]));
-  const options = { allSignals, connectorStatus, now };
+
+  // Apply learned taste from past emoji reactions (no-op until feedback exists).
+  const learned = applyLearnedWeights(scored);
+  scored = learned.signals;
+
+  const options = { allSignals, connectorStatus, now, feedbackActive: learned.active };
 
   // LLM enrichment runs only when Ollama is reachable with the configured model,
   // and the model is unloaded from VRAM as soon as we're done (active during use
@@ -108,11 +114,19 @@ async function buildReport({ allSignals = false } = {}) {
     try {
       // Heavy lift: Qwen filters spam and scores relevance across everything.
       scored = await classifyAndFilter(scored);
-      const selected = allSignals ? scored : selectReportSignals(scored, now);
-      options.selected = selected;
+    } catch (error) {
+      logger.warn("LLM classification failed; continuing with keyword scoring", { error: error.message });
+    }
+  }
+
+  // Selection runs in both modes so we always have the posted set in hand.
+  const selected = allSignals ? scored : selectReportSignals(scored, now);
+  options.selected = selected;
+
+  if (llmActive) {
+    try {
       options.llmActive = true;
       options.llmModel = process.env.OLLAMA_MODEL || "qwen3:8b";
-
       if (selected.length) {
         // Polish: hand the filtered, ranked picks to the Claude CLI for the
         // final prose. Falls back to Qwen generation if the CLI isn't ready.
@@ -141,7 +155,7 @@ async function buildReport({ allSignals = false } = {}) {
   const markdownPath = writeText(`report-${report.generatedAt.slice(0, 10)}.md`, report.body);
   logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive });
   console.log(report.body);
-  return report;
+  return { report, selected };
 }
 
 async function postClickUp() {
@@ -155,21 +169,48 @@ async function postClickUp() {
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
+async function postDaily(report, selected) {
+  // Per-signal posting so each item is individually reactable; falls back to a
+  // single whole-report post if feedback is off or channel posting fails.
+  if (process.env.FEEDBACK_ENABLED !== "false" && selected.length) {
+    try {
+      const { entries } = await postBriefWithFeedback(report, selected);
+      recordPostedSignals(entries.filter((entry) => entry.messageId));
+      const posted = entries.filter((entry) => entry.messageId).length;
+      logger.info(`Posted brief with ${posted} reactable signals to ClickUp channel`);
+      return;
+    } catch (error) {
+      logger.warn("Per-signal feedback posting failed; falling back to whole-report post", { error: error.message });
+    }
+  }
+  const result = await postReport(report);
+  logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
+}
+
 async function daily() {
+  // Learn from yesterday's reactions before building today's brief.
+  await learnFromReactions();
   await collect();
   if (isWeekend()) {
     logger.info("Weekend collection complete. No report will be posted Saturday or Sunday.");
     return;
   }
-  const report = await buildReport();
-  const selected = selectReportSignals(scoreSignals(dedupeSignals(readJsonl("signals.jsonl"))));
+  const { report, selected } = await buildReport();
   if (!selected.length) logger.warn("Daily report has no selected signals. Posting is still allowed, but review connector health.");
   if (!envBool("MORNING_BRIEF_DRY_RUN", false)) {
-    const result = await postReport(report);
-    logger.info(`Daily report posted to ClickUp ${result.destination}`, { channelError: result.channelError });
+    await postDaily(report, selected);
   } else {
     logger.info("Dry run enabled; daily report was not posted.");
   }
+}
+
+async function feedback() {
+  const weights = await learnFromReactions();
+  if (!weights) {
+    logger.info("No feedback learned yet. Post a brief, react to signals, then run this again.");
+    return;
+  }
+  console.log(JSON.stringify(weights, null, 2));
 }
 
 function help() {
@@ -182,6 +223,7 @@ Commands:
   npm run report
   npm run post:clickup
   npm run daily
+  npm run feedback
 `);
 }
 
@@ -192,6 +234,7 @@ try {
   else if (command === "report") await buildReport({ allSignals: process.argv.includes("--all") });
   else if (command === "post-clickup") await postClickUp();
   else if (command === "daily") await daily();
+  else if (command === "feedback") await feedback();
   else help();
 } catch (error) {
   logger.error(error.message, { stack: error.stack });

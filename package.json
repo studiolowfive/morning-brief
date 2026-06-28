@@ -10,7 +10,8 @@
     "collect": "node src/cli.js collect",
     "report": "node src/cli.js report",
     "post:clickup": "node src/cli.js post-clickup",
-    "daily": "node src/cli.js daily"
+    "daily": "node src/cli.js daily",
+    "feedback": "node src/cli.js feedback"
   },
   "engines": {
     "node": ">=20"

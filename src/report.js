@@ -131,13 +131,12 @@ export function generateReport(scoredSignals, options = {}) {
   const lines = [];
   lines.push(`# Morning Brief - ${date}`);
   lines.push("");
-  lines.push(
-    options.llmActive
-      ? `_Analysis: filtered & ranked by ${options.llmModel || "local model"}; prose ${
-          options.polishModel ? `polished by ${options.polishModel}` : `written by ${options.llmModel || "local model"}`
-        }._`
-      : "_Analysis: keyword scoring only (LLM unavailable — interpretive sections are templated)._"
-  );
+  const analysis = options.llmActive
+    ? `Analysis: filtered & ranked by ${options.llmModel || "local model"}; prose ${
+        options.polishModel ? `polished by ${options.polishModel}` : `written by ${options.llmModel || "local model"}`
+      }`
+    : "Analysis: keyword scoring only (LLM unavailable — interpretive sections are templated)";
+  lines.push(`_${analysis}${options.feedbackActive ? "; ranking tuned by your reactions" : ""}._`);
   lines.push("");
   lines.push("## Connector Health");
   connectorHealthLines(options.connectorStatus).forEach((line) => lines.push(line));
