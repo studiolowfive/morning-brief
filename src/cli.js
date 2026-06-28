@@ -8,7 +8,7 @@ import { collectFromConfig } from "./connectors/index.js";
 import { appendJsonl, readJsonl, readJson, readLatestReport, readManualSignals, writeText, writeJson, compactSignals } from "./storage.js";
 import { dedupeSignals } from "./dedupe.js";
 import { scoreSignals } from "./scoring.js";
-import { generateReport, selectReportSignals } from "./report.js";
+import { generateReport, selectReportSignals, assessDayStrength } from "./report.js";
 import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
@@ -122,6 +122,8 @@ async function buildReport({ allSignals = false } = {}) {
   // Selection runs in both modes so we always have the posted set in hand.
   const selected = allSignals ? scored : selectReportSignals(scored, now);
   options.selected = selected;
+  const dayStrength = assessDayStrength(selected);
+  options.dayStrength = dayStrength;
 
   if (llmActive) {
     try {
@@ -132,7 +134,7 @@ async function buildReport({ allSignals = false } = {}) {
         // final prose. Falls back to Qwen generation if the CLI isn't ready.
         let polished = null;
         if (isPolishEnabled()) {
-          polished = await polishBrief(selected);
+          polished = await polishBrief(selected, { dayStrength });
         }
         if (polished) {
           options.interpretations = polished.interpretations;
@@ -140,7 +142,7 @@ async function buildReport({ allSignals = false } = {}) {
           options.polishModel = process.env.CLAUDE_CLI_MODEL || "claude-cli";
         } else {
           options.interpretations = await interpretSignals(selected);
-          options.llmBrief = await synthesizeBrief(selected);
+          options.llmBrief = await synthesizeBrief(selected, { dayStrength });
         }
       }
     } catch (error) {

@@ -112,7 +112,7 @@ function runClaude(prompt, { timeoutMs = 150000 } = {}) {
   });
 }
 
-function buildPolishPrompt(signals) {
+function buildPolishPrompt(signals, dayStrength = "moderate") {
   const list = signals
     .map((s, i) => {
       const hint = s.llm ? ` [qwen relevance ${s.llm.relevance}: ${s.llm.why}]` : "";
@@ -122,14 +122,17 @@ function buildPolishPrompt(signals) {
 
   return `${ALEX_CONTEXT}
 
-You are Alex's sharp marketing strategist. Below are today's pre-filtered, pre-ranked market signals (a local model already removed spam and scored relevance). Write the brief in Alex's plain, contrarian, practical voice. No hype, no emoji, no hashtags. Be concrete and specific to each signal — never generic.
+You are Alex's sharp marketing strategist. Below are today's pre-filtered, pre-ranked market signals (a local model already removed spam and scored relevance). Today's strength has been assessed as "${dayStrength}". Write the brief in Alex's plain, contrarian, practical voice. No hype, no emoji, no hashtags. Be concrete and specific to each signal — never generic.
+
+Be honest about a quiet day: if the signals are weak, say so plainly and do NOT manufacture importance. "one_thing" should name the single most worthwhile action today — or, if nothing is genuinely worth acting on, say exactly that (e.g. "Nothing today worth a post; <one-line reason>").
 
 Return ONLY a JSON object, no prose around it:
 {
+  "one_thing": "the single most worthwhile action today, in one sentence — or a plain statement that today is quiet and not worth a post",
+  "executive_summary": "2-3 sentences on the real read today, matching the assessed strength (don't oversell a thin day)",
   "signals": [
     {"n": 1, "why_it_matters": "1-2 sentences on the live audience concern or buying context", "tie_in": "1 sentence linking to brand voice extraction, the workflow/prompt library, or Chain Chasers (or 'general market context')", "angle": "one punchy line Alex could post", "urgency": "1 short sentence on timing"}
   ],
-  "executive_summary": "2-3 sentences on the strongest read today and where the real opportunity is",
   "linkedin_angles": ["3 post-worthy lines in Alex's voice, grounded in today's signals"],
   "video_ideas": [{"hook": "...", "premise": "...", "visual": "...", "fit": "which product/beat it supports"}]
 }
@@ -142,10 +145,10 @@ ${list}`;
 
 // Single Claude CLI call that produces both per-signal interpretations and the
 // brief-level synthesis. Returns { interpretations: Map, brief } or null.
-export async function polishBrief(signals) {
+export async function polishBrief(signals, { dayStrength = "moderate" } = {}) {
   if (!signals.length) return null;
   try {
-    const text = await runClaude(buildPolishPrompt(signals));
+    const text = await runClaude(buildPolishPrompt(signals, dayStrength));
     const parsed = safeJson(text);
     if (!parsed) {
       logger.warn("Claude polish returned unparseable output; falling back to Qwen generation");
@@ -164,6 +167,7 @@ export async function polishBrief(signals) {
       }
     }
     const brief = {
+      oneThing: parsed.one_thing,
       executiveSummary: parsed.executive_summary,
       linkedinAngles: Array.isArray(parsed.linkedin_angles) ? parsed.linkedin_angles : [],
       videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : []

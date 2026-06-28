@@ -226,13 +226,14 @@ export async function interpretSignals(signals) {
 const BRIEF_SYSTEM = `You are a sharp marketing strategist writing for Alex Stahlmann of Studio Low Five.
 ${ALEX_CONTEXT}
 
-Given today's selected signals (titles), synthesize the brief. Return ONLY JSON:
-{"executive_summary":"2-3 sentences on the strongest read today and where the opportunity is",
+Given today's selected signals, synthesize the brief. Be honest about a quiet day — if signals are weak, say so and do not manufacture importance. Return ONLY JSON:
+{"one_thing":"the single most worthwhile action today in one sentence, or a plain statement that today is quiet and not worth a post",
+ "executive_summary":"2-3 sentences on the real read today, matching the assessed strength",
  "linkedin_angles":["3 short post-worthy lines in Alex's plain, contrarian, practical voice"],
  "video_ideas":[{"hook":"...","premise":"...","visual":"...","fit":"which product/beat it supports"}]}
 Ground everything in the actual signals. No hype, no emoji, no hashtags.`;
 
-export async function synthesizeBrief(signals) {
+export async function synthesizeBrief(signals, { dayStrength = "moderate" } = {}) {
   const list = signals
     .slice(0, 16)
     .map((s, i) => `${i + 1}. [${s.sourceName}] ${clip(s.title, 160)}`)
@@ -241,13 +242,14 @@ export async function synthesizeBrief(signals) {
     const content = await ollamaChat(
       [
         { role: "system", content: BRIEF_SYSTEM },
-        { role: "user", content: `Today's selected signals:\n\n${list}` }
+        { role: "user", content: `Today's strength: ${dayStrength}.\nToday's selected signals:\n\n${list}` }
       ],
       { json: true }
     );
     const parsed = safeJson(content);
     if (!parsed) return null;
     return {
+      oneThing: parsed.one_thing,
       executiveSummary: parsed.executive_summary,
       linkedinAngles: Array.isArray(parsed.linkedin_angles) ? parsed.linkedin_angles : [],
       videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : []
