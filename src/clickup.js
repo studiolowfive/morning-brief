@@ -124,7 +124,7 @@ export async function getMessageReactions(messageId) {
 export async function postBriefWithFeedback(report, selected, interpretations = new Map()) {
   const header = await postChannelMessage(
     [
-      `📋 *${report.title}*`,
+      `# ${report.title}`,
       "React on each signal to tune tomorrow's brief:",
       "🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it"
     ].join("\n\n")
@@ -139,10 +139,10 @@ export async function postBriefWithFeedback(report, selected, interpretations = 
     const why = interp?.whyItMatters || signal.llm?.why || (signal.labels ?? []).join(", ");
     const angle = interp?.angle;
 
-    const blocks = [`*${i + 1}. ${cleanTitle}*`, why];
-    if (angle) blocks.push(`💬 Angle: ${angle}`);
-    blocks.push(`_${signal.sourceName}_`);
-    if (signal.url) blocks.push(signal.url);
+    // Use markdown headings for visual hierarchy in ClickUp.
+    const blocks = [`## ${i + 1}. ${cleanTitle}`, `### Why it matters`, why];
+    if (angle) blocks.push(`### Angle`, angle);
+    blocks.push(`_${signal.sourceName}_ · ${signal.url || "no link"}`);
     const content = blocks.join("\n\n");
 
     try {
