@@ -1,0 +1,132 @@
+{
+  "rss": [
+    {
+      "id": "openai-blog",
+      "enabled": true,
+      "name": "OpenAI Blog",
+      "url": "https://openai.com/blog/rss.xml",
+      "topics": ["ai-assisted content", "workflow prompts", "brand voice"]
+    },
+    {
+      "id": "hacker-news",
+      "enabled": true,
+      "name": "Hacker News",
+      "url": "https://news.ycombinator.com/rss",
+      "topics": ["ai-assisted content", "workflow prompts", "indie launches"]
+    },
+    {
+      "id": "producthunt",
+      "enabled": true,
+      "name": "Product Hunt",
+      "url": "https://www.producthunt.com/feed",
+      "topics": ["digital products", "indie launches", "workflow tools"]
+    }
+  ],
+  "reddit": [
+    {
+      "id": "reddit-copywriting",
+      "enabled": true,
+      "name": "r/copywriting",
+      "subreddit": "copywriting",
+      "sort": "hot",
+      "topics": ["copywriting", "brand voice", "small business marketing"]
+    },
+    {
+      "id": "reddit-entrepreneur",
+      "enabled": true,
+      "name": "r/Entrepreneur",
+      "subreddit": "Entrepreneur",
+      "sort": "hot",
+      "topics": ["small business marketing", "digital products"]
+    },
+    {
+      "id": "reddit-discgolf",
+      "enabled": true,
+      "name": "r/discgolf",
+      "subreddit": "discgolf",
+      "sort": "hot",
+      "topics": ["disc golf", "Chain Chasers"]
+    },
+    {
+      "id": "reddit-indiegaming",
+      "enabled": true,
+      "name": "r/IndieGaming",
+      "subreddit": "IndieGaming",
+      "sort": "hot",
+      "topics": ["indie games", "mobile games", "Chain Chasers"]
+    }
+  ],
+  "youtube": [
+    {
+      "id": "youtube-ai-marketing-search",
+      "enabled": false,
+      "name": "YouTube Search: AI Marketing",
+      "query": "AI marketing brand voice",
+      "topics": ["ai-assisted content", "brand voice"]
+    }
+  ],
+  "bluesky": [
+    {
+      "id": "bluesky-brand-voice",
+      "enabled": true,
+      "name": "Bluesky: Brand Voice",
+      "query": "\"brand voice\"",
+      "topics": ["brand voice", "ai-assisted content"]
+    },
+    {
+      "id": "bluesky-ai-slop",
+      "enabled": true,
+      "name": "Bluesky: AI Slop",
+      "query": "\"AI slop\"",
+      "topics": ["brand voice", "ai-assisted content"]
+    },
+    {
+      "id": "bluesky-copywriting",
+      "enabled": true,
+      "name": "Bluesky: Copywriting",
+      "query": "copywriting",
+      "topics": ["copywriting", "small business marketing"]
+    },
+    {
+      "id": "bluesky-small-business",
+      "enabled": true,
+      "name": "Bluesky: Small Business Marketing",
+      "query": "\"small business\" marketing",
+      "topics": ["small business marketing", "digital products"]
+    },
+    {
+      "id": "bluesky-disc-golf",
+      "enabled": true,
+      "name": "Bluesky: Disc Golf",
+      "query": "\"disc golf\"",
+      "topics": ["disc golf", "Chain Chasers"]
+    },
+    {
+      "id": "bluesky-indie-games",
+      "enabled": true,
+      "name": "Bluesky: Indie Games",
+      "query": "\"indie game\"",
+      "topics": ["indie games", "mobile games", "Chain Chasers"]
+    }
+  ],
+  "manual": [
+    {
+      "id": "linkedin-manual",
+      "enabled": false,
+      "name": "LinkedIn Manual Watchlist",
+      "note": "Paste high-value LinkedIn links into data/manual-signals.jsonl for report inclusion."
+    },
+    {
+      "id": "tiktok-manual",
+      "enabled": false,
+      "name": "TikTok Manual Watchlist",
+      "note": "Use manually until an approved reliable source is configured."
+    },
+    {
+      "id": "udisc-manual",
+      "enabled": false,
+      "name": "UDisc Manual Watchlist",
+      "note": "Use manually until an approved reliable source is configured."
+    }
+  ]
+}
