@@ -35,9 +35,9 @@ function qualityBar() {
 // Quality-gated selection: only signals that clear the bar, ranked, capped — and
 // we DON'T backfill to a fixed count. A thin day returns few (or zero) signals on
 // purpose, so the brief reads as thin instead of padded.
-export function selectReportSignals(signals, now = new Date()) {
+export function selectReportSignals(signals, now = new Date(), opts = {}) {
   const start = reportWindowStart(now);
-  const max = now.getDay() === 1 ? 8 : 6;
+  const max = opts.max ?? (now.getDay() === 1 ? 8 : 6);
   const bar = qualityBar();
   return signals
     .filter((signal) => signalWindowDate(signal) >= start)

@@ -119,31 +119,43 @@ async function buildReport({ allSignals = false } = {}) {
     }
   }
 
-  // Selection runs in both modes so we always have the posted set in hand.
-  const selected = allSignals ? scored : selectReportSignals(scored, now);
-  options.selected = selected;
-  const dayStrength = assessDayStrength(selected);
-  options.dayStrength = dayStrength;
+  // Qwen rates nearly everything on-topic as 5/5, so its score can't gate. When
+  // Claude polish is on, send it a WIDER candidate pool and let it grade + drop;
+  // its keep/quality verdict becomes the real gate. Otherwise fall back to the
+  // (coarser) Qwen/keyword gate.
+  const finalMax = now.getDay() === 1 ? 8 : 6;
+  let selected = allSignals ? scored : selectReportSignals(scored, now);
 
   if (llmActive) {
     try {
       options.llmActive = true;
       options.llmModel = process.env.OLLAMA_MODEL || "qwen3:8b";
-      if (selected.length) {
-        // Polish: hand the filtered, ranked picks to the Claude CLI for the
-        // final prose. Falls back to Qwen generation if the CLI isn't ready.
-        let polished = null;
-        if (isPolishEnabled()) {
-          polished = await polishBrief(selected, { dayStrength });
-        }
-        if (polished) {
-          options.interpretations = polished.interpretations;
-          options.llmBrief = polished.brief;
-          options.polishModel = process.env.CLAUDE_CLI_MODEL || "claude-cli";
-        } else {
-          options.interpretations = await interpretSignals(selected);
-          options.llmBrief = await synthesizeBrief(selected, { dayStrength });
-        }
+
+      const usePolish = isPolishEnabled() && !allSignals;
+      const candidates = usePolish ? selectReportSignals(scored, now, { max: finalMax * 2 }) : selected;
+
+      let polished = null;
+      if (usePolish && candidates.length) {
+        polished = await polishBrief(candidates, { dayStrength: assessDayStrength(candidates) });
+      }
+
+      if (polished) {
+        // Claude is the gate: keep what it kept, rank by its quality, cap.
+        selected = candidates
+          .map((s) => {
+            const v = polished.interpretations.get(s.id);
+            return { ...s, quality: v?.quality ?? s.quality, _keep: v ? v.keep : true };
+          })
+          .filter((s) => s._keep)
+          .sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0) || b.totalScore - a.totalScore)
+          .slice(0, finalMax);
+        options.interpretations = polished.interpretations;
+        options.llmBrief = polished.brief;
+        options.polishModel = process.env.CLAUDE_CLI_MODEL || "claude-cli";
+      } else if (selected.length) {
+        // Qwen-only generation path (no Claude).
+        options.interpretations = await interpretSignals(selected);
+        options.llmBrief = await synthesizeBrief(selected, { dayStrength: assessDayStrength(selected) });
       }
     } catch (error) {
       logger.warn("LLM enrichment failed; falling back to keyword report", { error: error.message });
@@ -152,9 +164,14 @@ async function buildReport({ allSignals = false } = {}) {
     }
   }
 
+  options.selected = selected;
+  options.dayStrength = assessDayStrength(selected);
+
   const report = generateReport(scored, options);
   appendJsonl("reports.jsonl", report);
   const markdownPath = writeText(`report-${report.generatedAt.slice(0, 10)}.md`, report.body);
+  // Persist the exact built brief so `publish` can post it without rebuilding.
+  writeJson("last-brief.json", { report, selected });
   logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive });
   console.log(report.body);
   return { report, selected };
@@ -206,6 +223,18 @@ async function daily() {
   }
 }
 
+async function publish() {
+  // Post the most recently built brief per-signal (no rebuild, no collect, no
+  // weekday gate) — for posting on demand outside the daily run.
+  const data = readJson("last-brief.json");
+  if (!data?.report) throw new Error("No brief found. Run `npm run report` first.");
+  if (envBool("MORNING_BRIEF_DRY_RUN", false)) {
+    logger.info("Dry run enabled; not posting to ClickUp.");
+    return;
+  }
+  await postDaily(data.report, data.selected ?? []);
+}
+
 async function feedback() {
   const weights = await learnFromReactions();
   if (!weights) {
@@ -225,6 +254,7 @@ Commands:
   npm run report
   npm run post:clickup
   npm run daily
+  npm run publish
   npm run feedback
 `);
 }
@@ -236,6 +266,7 @@ try {
   else if (command === "report") await buildReport({ allSignals: process.argv.includes("--all") });
   else if (command === "post-clickup") await postClickUp();
   else if (command === "daily") await daily();
+  else if (command === "publish") await publish();
   else if (command === "feedback") await feedback();
   else help();
 } catch (error) {

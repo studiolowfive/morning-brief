@@ -124,10 +124,16 @@ ${ALEX_CONTEXT}
 
 For each numbered post decide:
 - is_promo (boolean): TRUE if the post's primary purpose is promotion or self-marketing — sales CTAs ("DM us", "book a demo", "sign up", "link in bio", discount codes), affiliate or SEO bait, hashtag stuffing, automated press-release style announcements, or anything that markets AT an audience rather than being a genuine human opinion, question, complaint, or discussion. Otherwise FALSE.
-- relevance (integer 1-5): how useful the post is as a signal for these topics — brand voice & AI content quality; copywriting & small-business marketing; content/prompt workflows & systems; disc golf & indie/mobile games. 5 = a live audience pain or opinion Alex can interpret; 1 = unrelated noise.
+- relevance (integer 1-5): how useful the post is as a STRATEGIC signal — a live audience pain, opinion, question, or debate Alex can interpret into positioning, content, or a product angle. USE THE FULL SCALE AND BE STINGY WITH 5s:
+  5 = a specific, genuine audience pain/opinion/debate squarely on brand voice, AI content quality, copywriting, small-business marketing, or content/prompt workflows — something Alex could build a post or product angle on.
+  4 = clearly on one of those themes and useful, but more general, second-hand, or a notable competitor/product framing.
+  3 = related and mildly useful.
+  2 = merely MENTIONS a topic keyword (a listing, announcement, roundup, or tourism/event post that happens to name e.g. "disc golf" or "indie game") with no audience insight.
+  1 = unrelated noise.
+  Disc golf and indie/mobile games are a SECONDARY interest: score them >=4 ONLY when there is real community sentiment or a concrete design insight — never for tourism, venue listings, or generic announcements that merely mention them.
 - why (string, max 12 words).
 
-Be strict: marketing spam is is_promo=true even when it is on-topic.
+Be strict on both axes: marketing spam is is_promo=true even when on-topic, and a keyword match alone is relevance 2, not 5.
 Return ONLY JSON of the form {"items":[{"n":1,"is_promo":false,"relevance":4,"why":"..."}]}.`;
 
 // Classify signals as genuine vs promo and attach an LLM relevance read.

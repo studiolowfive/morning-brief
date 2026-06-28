@@ -11,6 +11,7 @@
     "report": "node src/cli.js report",
     "post:clickup": "node src/cli.js post-clickup",
     "daily": "node src/cli.js daily",
+    "publish": "node src/cli.js publish",
     "feedback": "node src/cli.js feedback"
   },
   "engines": {

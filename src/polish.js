@@ -126,18 +126,24 @@ You are Alex's sharp marketing strategist. Below are today's pre-filtered, pre-r
 
 Be honest about a quiet day: if the signals are weak, say so plainly and do NOT manufacture importance. "one_thing" should name the single most worthwhile action today — or, if nothing is genuinely worth acting on, say exactly that (e.g. "Nothing today worth a post; <one-line reason>").
 
+You are also the QUALITY GATE. For each signal set:
+- "quality" (1-5, BE STINGY): 5 = a specific, genuine audience pain/opinion/debate squarely on brand voice, AI content quality, copywriting, small-business marketing, or content/prompt workflows that Alex could build a post or product angle on; 3 = related and mildly useful; 2 = merely mentions a topic keyword (a listing, announcement, tourism/event post) with no audience insight; 1 = noise. Disc golf / indie games are secondary — only 4+ with real community sentiment or a concrete design insight, never for venue listings or generic mentions.
+- "keep" (boolean): FALSE if the signal is not worth Alex's attention (keyword-mention only, listing/announcement, off-thesis, or just weak). Drop freely — a short sharp brief beats a padded one. It is fine to keep only 2-3, or even fewer.
+
+Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).
+
 Return ONLY a JSON object, no prose around it:
 {
   "one_thing": "the single most worthwhile action today, in one sentence — or a plain statement that today is quiet and not worth a post",
   "executive_summary": "2-3 sentences on the real read today, matching the assessed strength (don't oversell a thin day)",
   "signals": [
-    {"n": 1, "why_it_matters": "1-2 sentences on the live audience concern or buying context", "tie_in": "1 sentence linking to brand voice extraction, the workflow/prompt library, or Chain Chasers (or 'general market context')", "angle": "one punchy line Alex could post", "urgency": "1 short sentence on timing"}
+    {"n": 1, "quality": 4, "keep": true, "why_it_matters": "1-2 sentences on the live audience concern or buying context", "tie_in": "1 sentence linking to brand voice extraction, the workflow/prompt library, or Chain Chasers (or 'general market context')", "angle": "one punchy line Alex could post", "urgency": "1 short sentence on timing"}
   ],
-  "linkedin_angles": ["3 post-worthy lines in Alex's voice, grounded in today's signals"],
+  "linkedin_angles": ["3 post-worthy lines in Alex's voice, grounded in today's KEPT signals"],
   "video_ideas": [{"hook": "...", "premise": "...", "visual": "...", "fit": "which product/beat it supports"}]
 }
 
-Use the same "n" numbers as the signals below. Provide one signals[] entry per signal.
+Use the same "n" numbers as the signals below. Provide one signals[] entry per signal (including the ones you drop, so I can read your keep/quality verdict).
 
 SIGNALS:
 ${list}`;
@@ -162,7 +168,9 @@ export async function polishBrief(signals, { dayStrength = "moderate" } = {}) {
           whyItMatters: item.why_it_matters,
           tieIn: item.tie_in,
           angle: item.angle,
-          urgency: item.urgency
+          urgency: item.urgency,
+          quality: Number(item.quality) || null,
+          keep: item.keep !== false
         });
       }
     }
