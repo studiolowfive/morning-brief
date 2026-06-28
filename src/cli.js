@@ -171,10 +171,11 @@ async function buildReport({ allSignals = false } = {}) {
   appendJsonl("reports.jsonl", report);
   const markdownPath = writeText(`report-${report.generatedAt.slice(0, 10)}.md`, report.body);
   // Persist the exact built brief so `publish` can post it without rebuilding.
-  writeJson("last-brief.json", { report, selected });
+  const interpObj = options.interpretations ? Object.fromEntries(options.interpretations) : null;
+  writeJson("last-brief.json", { report, selected, interpretations: interpObj });
   logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive });
   console.log(report.body);
-  return { report, selected };
+  return { report, selected, interpretations: options.interpretations ?? new Map() };
 }
 
 async function postClickUp() {
@@ -188,12 +189,12 @@ async function postClickUp() {
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
-async function postDaily(report, selected) {
+async function postDaily(report, selected, interpretations = new Map()) {
   // Per-signal posting so each item is individually reactable; falls back to a
   // single whole-report post if feedback is off or channel posting fails.
   if (process.env.FEEDBACK_ENABLED !== "false" && selected.length) {
     try {
-      const { entries } = await postBriefWithFeedback(report, selected);
+      const { entries } = await postBriefWithFeedback(report, selected, interpretations);
       recordPostedSignals(entries.filter((entry) => entry.messageId));
       const posted = entries.filter((entry) => entry.messageId).length;
       logger.info(`Posted brief with ${posted} reactable signals to ClickUp channel`);
@@ -214,10 +215,10 @@ async function daily() {
     logger.info("Weekend collection complete. No report will be posted Saturday or Sunday.");
     return;
   }
-  const { report, selected } = await buildReport();
+  const { report, selected, interpretations } = await buildReport();
   if (!selected.length) logger.warn("Daily report has no selected signals. Posting is still allowed, but review connector health.");
   if (!envBool("MORNING_BRIEF_DRY_RUN", false)) {
-    await postDaily(report, selected);
+    await postDaily(report, selected, interpretations);
   } else {
     logger.info("Dry run enabled; daily report was not posted.");
   }
@@ -232,7 +233,8 @@ async function publish() {
     logger.info("Dry run enabled; not posting to ClickUp.");
     return;
   }
-  await postDaily(data.report, data.selected ?? []);
+  const interpretations = data.interpretations ? new Map(Object.entries(data.interpretations)) : new Map();
+  await postDaily(data.report, data.selected ?? [], interpretations);
 }
 
 async function feedback() {

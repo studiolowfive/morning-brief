@@ -1,4 +1,5 @@
 import { fetchJson } from "./http.js";
+import { clip } from "./text.js";
 
 function clickupHeaders() {
   if (!process.env.CLICKUP_API_TOKEN) throw new Error("CLICKUP_API_TOKEN is required");
@@ -117,18 +118,33 @@ export async function getMessageReactions(messageId) {
 }
 
 // Post the brief as a header message plus one reactable message per signal.
-// Returns the per-signal entries (with message ids) for the feedback index.
-export async function postBriefWithFeedback(report, selected) {
+// Each signal is formatted with blank-line spacing (ClickUp collapses single
+// line breaks) and a cleaned single-line title (raw posts carry their own
+// newlines). Returns the per-signal entries (with message ids) for the index.
+export async function postBriefWithFeedback(report, selected, interpretations = new Map()) {
   const header = await postChannelMessage(
-    `${report.title}\n\nReact on each signal below to tune tomorrow's brief:\n🔥 more like this · 👍 useful · 👎 noise · ✅ acted on it`
+    [
+      `📋 *${report.title}*`,
+      "React on each signal to tune tomorrow's brief:",
+      "🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it"
+    ].join("\n\n")
   );
   const parentId = header.id;
 
   const entries = [];
   for (let i = 0; i < selected.length; i++) {
     const signal = selected[i];
-    const why = signal.llm?.why || (signal.labels ?? []).join(", ");
-    const content = `*${i + 1}. ${signal.title}*\n${why}\n_${signal.sourceName}_ · ${signal.url || ""}`;
+    const interp = interpretations.get(signal.id);
+    const cleanTitle = clip((signal.title || "Untitled").replace(/\s+/g, " ").trim(), 120);
+    const why = interp?.whyItMatters || signal.llm?.why || (signal.labels ?? []).join(", ");
+    const angle = interp?.angle;
+
+    const blocks = [`*${i + 1}. ${cleanTitle}*`, why];
+    if (angle) blocks.push(`💬 Angle: ${angle}`);
+    blocks.push(`_${signal.sourceName}_`);
+    if (signal.url) blocks.push(signal.url);
+    const content = blocks.join("\n\n");
+
     try {
       const msg = await postChannelMessage(content, parentId);
       entries.push({
@@ -136,7 +152,7 @@ export async function postBriefWithFeedback(report, selected) {
         signalId: signal.id,
         sourceId: signal.sourceId,
         topics: signal.topics ?? [],
-        title: signal.title
+        title: cleanTitle
       });
     } catch (error) {
       // Don't let one failed signal post abort the whole brief.
