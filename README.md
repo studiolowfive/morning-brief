@@ -141,11 +141,19 @@ The cadence logic is in `src/cli.js` and `src/report.js`.
 - Saturday-Sunday: collect only.
 - Monday: includes Friday evening and weekend signals and adds `Weekend Catch-Up`.
 
-Use Windows Task Scheduler, cron, or Codex automations to run:
+### Scheduling (Windows)
 
-```bash
-npm run daily
+A `run-daily.cmd` launcher runs `node src/cli.js daily` from the project folder and logs to `logs/scheduler.log`. Register it to run every morning with PowerShell:
+
+```powershell
+$action = New-ScheduledTaskAction -Execute "F:\Codex Sandbox\Morning Brief\run-daily.cmd"
+$trigger = New-ScheduledTaskTrigger -Daily -At 7:00am
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive
+Register-ScheduledTask -TaskName "Morning Brief" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force
 ```
+
+It runs every day at 7am; the cadence logic (above) handles the weekend collect-only and the Monday catch-up. `-StartWhenAvailable` reruns a missed 7am start once the PC is back on, and `-LogonType Interactive` (run only when logged on) ensures access to the GPU, Ollama, and the Claude CLI.
 
 ## Troubleshooting
 
