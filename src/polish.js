@@ -112,7 +112,29 @@ function runClaude(prompt, { timeoutMs = 150000 } = {}) {
   });
 }
 
+// Optional local-only professional profile; powers the Roles & Gigs section.
+function loadProfile() {
+  const p = path.join(process.cwd(), "config", "professional-profile.md");
+  try {
+    return fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null;
+  } catch {
+    return null;
+  }
+}
+
 function buildPolishPrompt(signals, dayStrength = "moderate") {
+  const profile = loadProfile();
+  const rolesBlock = profile
+    ? `\n\nALEX'S PROFESSIONAL PROFILE (for the "roles" output below):\n${profile}\n`
+    : "";
+  const rolesField = profile
+    ? `,\n  "roles": [{"track": "A (contract lead) | B (role)", "opportunity": "what it is and where, in one line", "why_fit": "1 line tying it to Alex's profile", "action": "the concrete move (DM/apply/pitch)", "link": "source url", "note": "ONLY if Track B and at/below the senior floor: 'borderline — your call' with the reason"}]`
+    : "";
+  const rolesInstruction = profile
+    ? `\n\nROLES & GIGS: scan ONLY the signals above for real openings Alex could pitch for or apply to. Track A = someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = an actual job/role posting (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile: never invent a listing, only use openings actually present in the signals with their link, never reference the client. If nothing in today's signals qualifies, return "roles": [] — do not manufacture opportunities.`
+    : "";
+
+
   const list = signals
     .map((s, i) => {
       const hint = s.llm ? ` [qwen relevance ${s.llm.relevance}: ${s.llm.why}]` : "";
@@ -130,7 +152,7 @@ You are also the QUALITY GATE. For each signal set:
 - "quality" (1-5, BE STINGY): 5 = a specific, genuine audience pain/opinion/debate squarely on brand voice, AI content quality, copywriting, small-business marketing, or content/prompt workflows that Alex could build a post or product angle on; 3 = related and mildly useful; 2 = merely mentions a topic keyword (a listing, announcement, tourism/event post) with no audience insight; 1 = noise. Disc golf / indie games are secondary — only 4+ with real community sentiment or a concrete design insight, never for venue listings or generic mentions.
 - "keep" (boolean): FALSE if the signal is not worth Alex's attention (keyword-mention only, listing/announcement, off-thesis, or just weak). Drop freely — a short sharp brief beats a padded one. It is fine to keep only 2-3, or even fewer.
 
-Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).
+Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).${rolesInstruction}${rolesBlock}
 
 Return ONLY a JSON object, no prose around it:
 {
@@ -140,7 +162,7 @@ Return ONLY a JSON object, no prose around it:
     {"n": 1, "quality": 4, "keep": true, "why_it_matters": "1-2 sentences on the live audience concern or buying context", "tie_in": "1 sentence linking to brand voice extraction, the workflow/prompt library, or Chain Chasers (or 'general market context')", "angle": "one punchy line Alex could post", "urgency": "1 short sentence on timing"}
   ],
   "linkedin_angles": ["3 post-worthy lines in Alex's voice, grounded in today's KEPT signals"],
-  "video_ideas": [{"hook": "...", "premise": "...", "visual": "...", "fit": "which product/beat it supports"}]
+  "video_ideas": [{"hook": "...", "premise": "...", "visual": "...", "fit": "which product/beat it supports"}]${rolesField}
 }
 
 Use the same "n" numbers as the signals below. Provide one signals[] entry per signal (including the ones you drop, so I can read your keep/quality verdict).
@@ -178,7 +200,8 @@ export async function polishBrief(signals, { dayStrength = "moderate" } = {}) {
       oneThing: parsed.one_thing,
       executiveSummary: parsed.executive_summary,
       linkedinAngles: Array.isArray(parsed.linkedin_angles) ? parsed.linkedin_angles : [],
-      videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : []
+      videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : [],
+      roles: Array.isArray(parsed.roles) ? parsed.roles : []
     };
     logger.info(`Claude polish complete for ${interpretations.size} signals`);
     return { interpretations, brief };

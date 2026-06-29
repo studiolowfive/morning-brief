@@ -18,6 +18,17 @@ just the model's paraphrase — raw material for copy/positioning. Also fix
 `audienceLanguage()` in report.js (emits near-duplicate title + title-prefixed
 summary lines).
 
+## Roles & Gigs section (requested)
+Add a line or two to the brief recommending roles/contracts Alex could apply for
+or pitch (contract strategy, copywriting, etc.) — surfaced from the day's signals
+(hiring posts, "looking for help with…", freelance asks) and matched to a
+capability profile. Needs `config/professional-profile.md` (hireable skills, role
+preferences, rates/availability). Note: Alex's capabilities live in a claude.ai
+"professional development" Project, which Claude Code cannot access — get the
+profile via paste, a local file, or Google Drive instead. Optional follow-on:
+add dedicated job/gig RSS sources to actively hunt rather than only surface what
+appears on Bluesky.
+
 ## Cross-day momentum
 Persist what's been surfaced so trending stories don't repeat and the brief can
 say "AI-slop discourse is accelerating — day 3" vs. "isolated complaint." Knowing

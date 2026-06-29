@@ -3,3 +3,5 @@ data/
 logs/
 node_modules/
 *.log
+# Local-only: contains confidential professional info (rates, client notes).
+config/professional-profile.md

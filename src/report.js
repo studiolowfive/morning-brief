@@ -241,6 +241,20 @@ export function generateReport(scoredSignals, options = {}) {
     lines.push("");
   });
 
+  // Roles & Gigs: real openings from today's signals matched to Alex's profile.
+  if (llmBrief?.roles?.length) {
+    lines.push("## Roles & Gigs");
+    llmBrief.roles.forEach((role) => {
+      const track = role.track ? `[${role.track}] ` : "";
+      lines.push(`- ${track}${role.opportunity}`);
+      if (role.why_fit) lines.push(`  - Fit: ${role.why_fit}`);
+      if (role.action) lines.push(`  - Move: ${role.action}`);
+      if (role.note) lines.push(`  - ⚠️ ${role.note}`);
+      if (role.link) lines.push(`  - ${role.link}`);
+    });
+    lines.push("");
+  }
+
   if (selected.length) {
     lines.push("## Repeated Themes");
     lines.push(themes.length ? themes.map((item) => `- ${item.theme}: ${item.count} signal(s)`).join("\n") : "- No clear repeated themes today.");
