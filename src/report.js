@@ -227,6 +227,7 @@ export function generateReport(scoredSignals, options = {}) {
   selected.forEach((signal, index) => {
     const interp = interpretations?.get(signal.id);
     lines.push(`### ${index + 1}. ${signal.title}`);
+    if (signal.resurfaceReason) lines.push(`↻ Resurfaced: ${signal.resurfaceReason}`);
     lines.push(`Labels: ${signal.labels.join(", ")} | Quality ${signal.quality ?? signalQuality(signal)}/5`);
     lines.push(`Sources: ${signal.sourceName}`);
     lines.push(`Scores: ${scoreLine(signal.scores)}`);

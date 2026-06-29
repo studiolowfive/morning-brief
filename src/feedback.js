@@ -90,6 +90,78 @@ export function getExcludedIds() {
   return excluded;
 }
 
+const SEEN_FILE = "seen-signals.json";
+
+// Record engagement metrics for the signals we just showed, so a later run can
+// tell whether a repeat has materially grown since it was last surfaced.
+export function recordSurfaced(signals) {
+  if (!signals?.length) return;
+  const store = readJson(SEEN_FILE) ?? {};
+  const now = new Date().toISOString();
+  for (const s of signals) {
+    const prev = store[s.id] ?? {};
+    store[s.id] = {
+      firstSurfacedAt: prev.firstSurfacedAt ?? now,
+      lastSurfacedAt: now,
+      timesShown: (prev.timesShown ?? 0) + 1,
+      score: s.score ?? 0,
+      comments: s.comments ?? 0,
+      reposts: s.reposts ?? 0,
+      crossSourceCount: s.crossSourceCount ?? 1
+    };
+  }
+  writeJson(SEEN_FILE, store);
+}
+
+// Decide if a repeat has grown enough to justify resurfacing. Returns a human
+// explanation, or null to keep it suppressed. Thresholds are deliberately
+// conservative so resurfacing is the exception, not the norm.
+function resurfaceReason(current, prev) {
+  const curCross = current.crossSourceCount ?? 1;
+  const prevCross = prev.crossSourceCount ?? 1;
+  if (curCross > prevCross) {
+    return `now appearing across ${curCross} sources (was ${prevCross}) since last shown`;
+  }
+  const curEng = (current.score ?? 0) + (current.comments ?? 0);
+  const prevEng = (prev.score ?? 0) + (prev.comments ?? 0);
+  if (curEng >= 25 && curEng >= prevEng * 2) {
+    return `engagement more than doubled (${prevEng} → ${curEng}) since last shown`;
+  }
+  return null;
+}
+
+// Repeat policy: drop 🔁-suppressed and previously-seen signals, EXCEPT resurface
+// a seen signal whose metrics grew materially (tagged with .resurfaceReason).
+export function applyRepeatPolicy(signals) {
+  const seenIds = getSeenIds();
+  const suppressed = getSuppressedIds();
+  const metrics = readJson(SEEN_FILE) ?? {};
+
+  const kept = [];
+  let droppedRepeat = 0;
+  let droppedSuppressed = 0;
+  let resurfaced = 0;
+
+  for (const signal of signals) {
+    if (suppressed.has(signal.id)) {
+      droppedSuppressed++;
+      continue;
+    }
+    if (!seenIds.has(signal.id)) {
+      kept.push(signal); // fresh
+      continue;
+    }
+    const reason = metrics[signal.id] ? resurfaceReason(signal, metrics[signal.id]) : null;
+    if (reason) {
+      kept.push({ ...signal, resurfaceReason: reason });
+      resurfaced++;
+    } else {
+      droppedRepeat++;
+    }
+  }
+  return { signals: kept, droppedRepeat, droppedSuppressed, resurfaced };
+}
+
 // Record the signals we just posted, so a later run can look up their reactions.
 export function recordPostedSignals(entries) {
   if (!entries?.length) return;

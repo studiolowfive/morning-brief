@@ -12,7 +12,7 @@ import { generateReport, selectReportSignals, assessDayStrength } from "./report
 import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
-import { applyLearnedWeights, learnFromReactions, recordPostedSignals, getExcludedIds } from "./feedback.js";
+import { applyLearnedWeights, learnFromReactions, recordPostedSignals, applyRepeatPolicy, recordSurfaced } from "./feedback.js";
 
 loadEnv();
 
@@ -101,12 +101,14 @@ async function buildReport({ allSignals = false } = {}) {
   let scored = scoreSignals(dedupeSignals([...stored, ...manual]));
 
   // Don't repeat the same pulls: drop signals already surfaced in a prior brief
-  // (within REPEAT_WINDOW_DAYS) or 🔁-flagged by the user as repeats.
-  const excluded = getExcludedIds();
-  if (excluded.size) {
-    const before = scored.length;
-    scored = scored.filter((signal) => !excluded.has(signal.id));
-    logger.info(`Repeat filter: dropped ${before - scored.length} previously-surfaced/suppressed signals`);
+  // (within REPEAT_WINDOW_DAYS) or 🔁-flagged — UNLESS a repeat's engagement grew
+  // materially, in which case it's resurfaced with an explanation.
+  const repeat = applyRepeatPolicy(scored);
+  scored = repeat.signals;
+  if (repeat.droppedRepeat || repeat.droppedSuppressed || repeat.resurfaced) {
+    logger.info(
+      `Repeat policy: dropped ${repeat.droppedRepeat} repeats + ${repeat.droppedSuppressed} suppressed; resurfaced ${repeat.resurfaced}`
+    );
   }
 
   // Apply learned taste from past emoji reactions (no-op until feedback exists).
@@ -205,6 +207,7 @@ async function postDaily(report, selected, interpretations = new Map()) {
     try {
       const { entries } = await postBriefWithFeedback(report, selected, interpretations);
       recordPostedSignals(entries.filter((entry) => entry.messageId));
+      recordSurfaced(selected);
       const posted = entries.filter((entry) => entry.messageId).length;
       logger.info(`Posted brief with ${posted} reactable signals to ClickUp channel`);
       return;
@@ -213,6 +216,7 @@ async function postDaily(report, selected, interpretations = new Map()) {
     }
   }
   const result = await postReport(report);
+  recordSurfaced(selected);
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
