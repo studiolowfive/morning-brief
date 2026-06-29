@@ -16,21 +16,26 @@ export async function collectJobs(source, limit) {
 
   const params = new URLSearchParams({
     query: source.query,
-    page: "1",
     num_pages: "1",
+    country: process.env.JOBS_COUNTRY || "us",
     date_posted: process.env.JOBS_DATE_POSTED || "week"
   });
   if (source.remoteOnly) params.set("remote_jobs_only", "true");
 
-  const data = await fetchJson(`https://jsearch.p.rapidapi.com/search?${params.toString()}`, {
+  // v5 search endpoint is /search-v2 (not /search).
+  const data = await fetchJson(`https://jsearch.p.rapidapi.com/search-v2?${params.toString()}`, {
     headers: {
       "X-RapidAPI-Key": key,
       "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
       Accept: "application/json"
-    }
+    },
+    // JSearch (Google for Jobs aggregation) is slow — well past the 15s default.
+    timeoutMs: 30000
   });
 
-  return (data.data ?? []).slice(0, limit).map((job) => {
+  // search-v2 nests results under data.jobs (older /search used data directly).
+  const jobs = data.data?.jobs ?? (Array.isArray(data.data) ? data.data : []);
+  return jobs.slice(0, limit).map((job) => {
     const loc = [job.job_city, job.job_state].filter(Boolean).join(", ");
     const where = job.job_is_remote ? "Remote" : loc || job.job_country || "";
     return {
