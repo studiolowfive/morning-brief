@@ -12,7 +12,7 @@ import { generateReport, selectReportSignals, assessDayStrength } from "./report
 import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
-import { applyLearnedWeights, learnFromReactions, recordPostedSignals } from "./feedback.js";
+import { applyLearnedWeights, learnFromReactions, recordPostedSignals, getExcludedIds } from "./feedback.js";
 
 loadEnv();
 
@@ -99,6 +99,15 @@ async function buildReport({ allSignals = false } = {}) {
   const now = new Date();
 
   let scored = scoreSignals(dedupeSignals([...stored, ...manual]));
+
+  // Don't repeat the same pulls: drop signals already surfaced in a prior brief
+  // (within REPEAT_WINDOW_DAYS) or 🔁-flagged by the user as repeats.
+  const excluded = getExcludedIds();
+  if (excluded.size) {
+    const before = scored.length;
+    scored = scored.filter((signal) => !excluded.has(signal.id));
+    logger.info(`Repeat filter: dropped ${before - scored.length} previously-surfaced/suppressed signals`);
+  }
 
   // Apply learned taste from past emoji reactions (no-op until feedback exists).
   const learned = applyLearnedWeights(scored);

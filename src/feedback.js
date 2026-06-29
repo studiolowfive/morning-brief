@@ -18,8 +18,17 @@ const REACTION_GROUPS = [
   { weight: -2, tokens: ["👎", "-1", "thumbsdown"] }
 ];
 
+// 🔁 means "this is a repeat — stop showing it." Handled as suppression, not a
+// weight (it's not a vote against the source/topic).
+const REPEAT_TOKENS = ["🔁", "repeat", "arrows_clockwise", "arrows_counterclockwise"];
+
 const INDEX_FILE = "feedback-index.jsonl";
 const WEIGHTS_FILE = "learned-weights.json";
+const SUPPRESS_FILE = "suppressed-signals.json";
+
+function repeatWindowDays() {
+  return Number.parseInt(process.env.REPEAT_WINDOW_DAYS ?? "30", 10);
+}
 
 function windowDays() {
   return Number.parseInt(process.env.FEEDBACK_WINDOW_DAYS ?? "14", 10);
@@ -52,6 +61,33 @@ export function scoreReactions(raw) {
     }
   }
   return { score, matched };
+}
+
+function hasRepeatReaction(raw) {
+  return extractReactionStrings(raw).some((rx) => REPEAT_TOKENS.some((t) => rx === t || rx.includes(t)));
+}
+
+// Signals the user 🔁-flagged as repeats: permanently suppressed (never resurfaced).
+export function getSuppressedIds() {
+  return new Set(readJson(SUPPRESS_FILE) ?? []);
+}
+
+// Signal ids already shown to the user in a prior posted brief, within the
+// repeat window. These are the "same pulls" we don't want to surface again.
+export function getSeenIds(windowDays = repeatWindowDays()) {
+  const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
+  const ids = new Set();
+  for (const row of readJsonl(INDEX_FILE)) {
+    if (row.signalId && (Date.parse(row.postedAt) || 0) >= cutoff) ids.add(row.signalId);
+  }
+  return ids;
+}
+
+// Everything to drop from a new brief: previously-surfaced (windowed) + 🔁-suppressed.
+export function getExcludedIds() {
+  const excluded = getSeenIds();
+  for (const id of getSuppressedIds()) excluded.add(id);
+  return excluded;
 }
 
 // Record the signals we just posted, so a later run can look up their reactions.
@@ -94,7 +130,9 @@ export async function learnFromReactions() {
 
   const sourceAgg = new Map();
   const topicAgg = new Map();
+  const suppressed = getSuppressedIds();
   let reactedCount = 0;
+  let suppressedAdded = 0;
 
   for (const row of recent) {
     let raw;
@@ -104,8 +142,13 @@ export async function learnFromReactions() {
       logger.warn("Could not read reactions for a message", { messageId: row.messageId, error: error.message });
       continue;
     }
+    // 🔁 = "stop showing this" — permanently suppress this signal id.
+    if (hasRepeatReaction(raw) && row.signalId && !suppressed.has(row.signalId)) {
+      suppressed.add(row.signalId);
+      suppressedAdded++;
+    }
     const { score, matched } = scoreReactions(raw);
-    if (!matched.length) continue; // no reaction = no signal, skip (not a downvote)
+    if (!matched.length) continue; // no weight reaction = no signal, skip
     reactedCount++;
 
     const push = (map, key) => {
@@ -130,9 +173,11 @@ export async function learnFromReactions() {
     topics: toWeights(topicAgg)
   };
   writeJson(WEIGHTS_FILE, weights);
+  if (suppressedAdded) writeJson(SUPPRESS_FILE, [...suppressed]);
   logger.info(`Learned from ${reactedCount} reacted signals`, {
     sources: Object.keys(weights.sources).length,
-    topics: Object.keys(weights.topics).length
+    topics: Object.keys(weights.topics).length,
+    newlySuppressed: suppressedAdded
   });
   return weights;
 }

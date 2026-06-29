@@ -1,3 +1,4 @@
+import { spawn } from "node:child_process";
 import { logger } from "./logger.js";
 import { clip } from "./text.js";
 
@@ -79,6 +80,49 @@ async function ollamaChat(messages, { json = false, temperature = 0, timeoutMs =
   return stripThink(data.message?.content || "");
 }
 
+async function pingOllama(url, timeoutMs) {
+  try {
+    const res = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(timeoutMs) });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Make sure the Ollama daemon is up: if it isn't responding, launch `ollama
+// serve` (detached) and wait for it. This is the "check, and turn it on if off"
+// step so unattended runs don't silently degrade to keyword mode.
+export async function ensureOllamaUp() {
+  const c = cfg();
+  if (c.provider !== "ollama") return false;
+  if (await pingOllama(c.url, 2500)) return true;
+  if (process.env.OLLAMA_AUTOSTART === "false") return false;
+
+  logger.info("Ollama not responding; starting `ollama serve`...");
+  try {
+    const child = spawn(process.env.OLLAMA_BIN || "ollama", ["serve"], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      shell: process.platform === "win32"
+    });
+    child.unref();
+  } catch (error) {
+    logger.warn("Could not launch Ollama", { error: error.message });
+    return false;
+  }
+
+  for (let i = 0; i < 20; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    if (await pingOllama(c.url, 1500)) {
+      logger.info("Ollama is up.");
+      return true;
+    }
+  }
+  logger.warn("Ollama did not come up in time; continuing in keyword mode.");
+  return false;
+}
+
 export async function isAvailable() {
   const c = cfg();
   if (!c.enabled) return false;
@@ -86,6 +130,7 @@ export async function isAvailable() {
     logger.warn(`LLM provider "${c.provider}" not implemented; skipping LLM enrichment.`);
     return false;
   }
+  if (!(await ensureOllamaUp())) return false;
   try {
     const res = await fetch(`${c.url}/api/tags`, { signal: AbortSignal.timeout(2500) });
     if (!res.ok) return false;

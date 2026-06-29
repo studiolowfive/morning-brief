@@ -126,7 +126,7 @@ export async function postBriefWithFeedback(report, selected, interpretations = 
     [
       `# ${report.title}`,
       "React on each signal to tune tomorrow's brief:",
-      "🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it"
+      "🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it   ·   🔁 repeat, stop showing"
     ].join("\n\n")
   );
   const parentId = header.id;
