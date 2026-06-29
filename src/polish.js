@@ -137,7 +137,7 @@ function buildPolishPrompt(signals, dayStrength = "moderate", jobs = []) {
     ? `,\n  "roles": [{"track": "A (contract lead) | B (role)", "opportunity": "what it is and where, in one line", "why_fit": "1 line tying it to Alex's profile", "action": "the concrete move (DM/apply/pitch)", "link": "source url", "note": "ONLY if Track B and at/below the senior floor: 'borderline — your call' with the reason"}]`
     : "";
   const rolesInstruction = profile
-    ? `\n\nROLES & GIGS: surface real openings Alex could pitch for or apply to. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile: never invent a listing, only use openings actually present here with their link, never reference the client. If nothing qualifies, return "roles": [] — do not manufacture opportunities.`
+    ? `\n\nROLES & GIGS: surface real openings Alex could pitch for or apply to. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile EXACTLY, including any do-not-surface rules: never invent a listing, only use openings actually present here with their link. If nothing qualifies, return "roles": [] — do not manufacture opportunities.`
     : "";
 
 
