@@ -2,13 +2,15 @@ import { collectRss } from "./rss.js";
 import { collectReddit } from "./reddit.js";
 import { collectYouTube } from "./youtube.js";
 import { collectBluesky } from "./bluesky.js";
+import { collectJobs } from "./jobs.js";
 import { logger } from "../logger.js";
 
 const collectors = {
   rss: collectRss,
   reddit: collectReddit,
   youtube: collectYouTube,
-  bluesky: collectBluesky
+  bluesky: collectBluesky,
+  jobs: collectJobs
 };
 
 function sleep(ms) {

@@ -115,6 +115,11 @@ async function buildReport({ allSignals = false } = {}) {
   const learned = applyLearnedWeights(scored);
   scored = learned.signals;
 
+  // Job listings are a separate lane: they feed Roles & Gigs (Track B), not the
+  // market-signal ranking or the Qwen spam classifier.
+  const jobs = scored.filter((s) => s.connector === "jobs");
+  scored = scored.filter((s) => s.connector !== "jobs");
+
   const options = { allSignals, connectorStatus, now, feedbackActive: learned.active };
 
   // LLM enrichment runs only when Ollama is reachable with the configured model,
@@ -147,7 +152,7 @@ async function buildReport({ allSignals = false } = {}) {
 
       let polished = null;
       if (usePolish && candidates.length) {
-        polished = await polishBrief(candidates, { dayStrength: assessDayStrength(candidates) });
+        polished = await polishBrief(candidates, { dayStrength: assessDayStrength(candidates), jobs });
       }
 
       if (polished) {
@@ -183,10 +188,10 @@ async function buildReport({ allSignals = false } = {}) {
   const markdownPath = writeText(`report-${report.generatedAt.slice(0, 10)}.md`, report.body);
   // Persist the exact built brief so `publish` can post it without rebuilding.
   const interpObj = options.interpretations ? Object.fromEntries(options.interpretations) : null;
-  writeJson("last-brief.json", { report, selected, interpretations: interpObj });
-  logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive });
+  writeJson("last-brief.json", { report, selected, interpretations: interpObj, jobs });
+  logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive, jobs: jobs.length });
   console.log(report.body);
-  return { report, selected, interpretations: options.interpretations ?? new Map() };
+  return { report, selected, interpretations: options.interpretations ?? new Map(), jobs };
 }
 
 async function postClickUp() {
@@ -200,14 +205,19 @@ async function postClickUp() {
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
-async function postDaily(report, selected, interpretations = new Map()) {
+async function postDaily(report, selected, interpretations = new Map(), jobs = []) {
+  // Mark both the shown market signals and the job pool as surfaced, so neither
+  // repeats in a later brief (jobs aren't posted individually but are still shown
+  // via the Roles & Gigs section).
+  const markSurfaced = () => recordSurfaced([...selected, ...jobs]);
+
   // Per-signal posting so each item is individually reactable; falls back to a
   // single whole-report post if feedback is off or channel posting fails.
   if (process.env.FEEDBACK_ENABLED !== "false" && selected.length) {
     try {
       const { entries } = await postBriefWithFeedback(report, selected, interpretations);
       recordPostedSignals(entries.filter((entry) => entry.messageId));
-      recordSurfaced(selected);
+      markSurfaced();
       const posted = entries.filter((entry) => entry.messageId).length;
       logger.info(`Posted brief with ${posted} reactable signals to ClickUp channel`);
       return;
@@ -216,7 +226,7 @@ async function postDaily(report, selected, interpretations = new Map()) {
     }
   }
   const result = await postReport(report);
-  recordSurfaced(selected);
+  markSurfaced();
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
@@ -228,10 +238,10 @@ async function daily() {
     logger.info("Weekend collection complete. No report will be posted Saturday or Sunday.");
     return;
   }
-  const { report, selected, interpretations } = await buildReport();
+  const { report, selected, interpretations, jobs } = await buildReport();
   if (!selected.length) logger.warn("Daily report has no selected signals. Posting is still allowed, but review connector health.");
   if (!envBool("MORNING_BRIEF_DRY_RUN", false)) {
-    await postDaily(report, selected, interpretations);
+    await postDaily(report, selected, interpretations, jobs);
   } else {
     logger.info("Dry run enabled; daily report was not posted.");
   }
@@ -247,7 +257,7 @@ async function publish() {
     return;
   }
   const interpretations = data.interpretations ? new Map(Object.entries(data.interpretations)) : new Map();
-  await postDaily(data.report, data.selected ?? [], interpretations);
+  await postDaily(data.report, data.selected ?? [], interpretations, data.jobs ?? []);
 }
 
 async function feedback() {

@@ -109,6 +109,38 @@
       "topics": ["indie games", "mobile games", "Chain Chasers"]
     }
   ],
+  "jobs": [
+    {
+      "id": "jobs-director-brand-mn",
+      "enabled": true,
+      "name": "Jobs: Director of Brand (Minneapolis)",
+      "query": "Director of Brand Minneapolis",
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-creative-director-mn",
+      "enabled": true,
+      "name": "Jobs: Creative Director (Minneapolis)",
+      "query": "Creative Director brand Minneapolis",
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-senior-brand-strategist-remote",
+      "enabled": true,
+      "name": "Jobs: Senior Brand Strategist (remote)",
+      "query": "Senior Brand Strategist",
+      "remoteOnly": true,
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-fractional-head-brand-remote",
+      "enabled": true,
+      "name": "Jobs: Fractional Head of Brand (remote)",
+      "query": "fractional head of brand",
+      "remoteOnly": true,
+      "topics": ["role"]
+    }
+  ],
   "manual": [
     {
       "id": "linkedin-manual",

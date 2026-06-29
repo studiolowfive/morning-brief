@@ -122,8 +122,14 @@ function loadProfile() {
   }
 }
 
-function buildPolishPrompt(signals, dayStrength = "moderate") {
+function buildPolishPrompt(signals, dayStrength = "moderate", jobs = []) {
   const profile = loadProfile();
+  const jobList = jobs.length
+    ? jobs
+        .map((j, i) => `J${i + 1}. ${j.title}\n   ${clip((j.summary || "").replace(/\s+/g, " "), 300)}\n   ${j.url || "no link"}`)
+        .join("\n\n")
+    : "";
+  const jobsBlock = profile && jobList ? `\n\nJOB LISTINGS (Track B candidates, pulled from job boards):\n${jobList}\n` : "";
   const rolesBlock = profile
     ? `\n\nALEX'S PROFESSIONAL PROFILE (for the "roles" output below):\n${profile}\n`
     : "";
@@ -131,7 +137,7 @@ function buildPolishPrompt(signals, dayStrength = "moderate") {
     ? `,\n  "roles": [{"track": "A (contract lead) | B (role)", "opportunity": "what it is and where, in one line", "why_fit": "1 line tying it to Alex's profile", "action": "the concrete move (DM/apply/pitch)", "link": "source url", "note": "ONLY if Track B and at/below the senior floor: 'borderline — your call' with the reason"}]`
     : "";
   const rolesInstruction = profile
-    ? `\n\nROLES & GIGS: scan ONLY the signals above for real openings Alex could pitch for or apply to. Track A = someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = an actual job/role posting (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile: never invent a listing, only use openings actually present in the signals with their link, never reference the client. If nothing in today's signals qualifies, return "roles": [] — do not manufacture opportunities.`
+    ? `\n\nROLES & GIGS: surface real openings Alex could pitch for or apply to. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile: never invent a listing, only use openings actually present here with their link, never reference the client. If nothing qualifies, return "roles": [] — do not manufacture opportunities.`
     : "";
 
 
@@ -152,7 +158,7 @@ You are also the QUALITY GATE. For each signal set:
 - "quality" (1-5, BE STINGY): 5 = a specific, genuine audience pain/opinion/debate squarely on brand voice, AI content quality, copywriting, small-business marketing, or content/prompt workflows that Alex could build a post or product angle on; 3 = related and mildly useful; 2 = merely mentions a topic keyword (a listing, announcement, tourism/event post) with no audience insight; 1 = noise. Disc golf / indie games are secondary — only 4+ with real community sentiment or a concrete design insight, never for venue listings or generic mentions.
 - "keep" (boolean): FALSE if the signal is not worth Alex's attention (keyword-mention only, listing/announcement, off-thesis, or just weak). Drop freely — a short sharp brief beats a padded one. It is fine to keep only 2-3, or even fewer.
 
-Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).${rolesInstruction}${rolesBlock}
+Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).${rolesInstruction}${rolesBlock}${jobsBlock}
 
 Return ONLY a JSON object, no prose around it:
 {
@@ -173,10 +179,10 @@ ${list}`;
 
 // Single Claude CLI call that produces both per-signal interpretations and the
 // brief-level synthesis. Returns { interpretations: Map, brief } or null.
-export async function polishBrief(signals, { dayStrength = "moderate" } = {}) {
+export async function polishBrief(signals, { dayStrength = "moderate", jobs = [] } = {}) {
   if (!signals.length) return null;
   try {
-    const text = await runClaude(buildPolishPrompt(signals, dayStrength));
+    const text = await runClaude(buildPolishPrompt(signals, dayStrength, jobs));
     const parsed = safeJson(text);
     if (!parsed) {
       logger.warn("Claude polish returned unparseable output; falling back to Qwen generation");

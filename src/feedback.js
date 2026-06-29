@@ -25,6 +25,7 @@ const REPEAT_TOKENS = ["🔁", "repeat", "arrows_clockwise", "arrows_countercloc
 const INDEX_FILE = "feedback-index.jsonl";
 const WEIGHTS_FILE = "learned-weights.json";
 const SUPPRESS_FILE = "suppressed-signals.json";
+const SEEN_FILE = "seen-signals.json";
 
 function repeatWindowDays() {
   return Number.parseInt(process.env.REPEAT_WINDOW_DAYS ?? "30", 10);
@@ -72,13 +73,19 @@ export function getSuppressedIds() {
   return new Set(readJson(SUPPRESS_FILE) ?? []);
 }
 
-// Signal ids already shown to the user in a prior posted brief, within the
-// repeat window. These are the "same pulls" we don't want to surface again.
+// Signal ids already shown to the user within the repeat window — the "same
+// pulls" we don't re-surface. Unions posted market signals (feedback-index) and
+// everything recorded as surfaced (seen-signals, which also covers job listings
+// that aren't posted as individual reactable messages).
 export function getSeenIds(windowDays = repeatWindowDays()) {
   const cutoff = Date.now() - windowDays * 24 * 60 * 60 * 1000;
   const ids = new Set();
   for (const row of readJsonl(INDEX_FILE)) {
     if (row.signalId && (Date.parse(row.postedAt) || 0) >= cutoff) ids.add(row.signalId);
+  }
+  const store = readJson(SEEN_FILE) ?? {};
+  for (const [id, rec] of Object.entries(store)) {
+    if ((Date.parse(rec.lastSurfacedAt) || 0) >= cutoff) ids.add(id);
   }
   return ids;
 }
@@ -89,8 +96,6 @@ export function getExcludedIds() {
   for (const id of getSuppressedIds()) excluded.add(id);
   return excluded;
 }
-
-const SEEN_FILE = "seen-signals.json";
 
 // Record engagement metrics for the signals we just showed, so a later run can
 // tell whether a repeat has materially grown since it was last surfaced.
