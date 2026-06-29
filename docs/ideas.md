@@ -18,16 +18,16 @@ just the model's paraphrase — raw material for copy/positioning. Also fix
 `audienceLanguage()` in report.js (emits near-duplicate title + title-prefixed
 summary lines).
 
-## Roles & Gigs section (requested)
-Add a line or two to the brief recommending roles/contracts Alex could apply for
-or pitch (contract strategy, copywriting, etc.) — surfaced from the day's signals
-(hiring posts, "looking for help with…", freelance asks) and matched to a
-capability profile. Needs `config/professional-profile.md` (hireable skills, role
-preferences, rates/availability). Note: Alex's capabilities live in a claude.ai
-"professional development" Project, which Claude Code cannot access — get the
-profile via paste, a local file, or Google Drive instead. Optional follow-on:
-add dedicated job/gig RSS sources to actively hunt rather than only surface what
-appears on Bluesky.
+## Roles & Gigs section — BUILT (commit 1a5313d)
+Polish step loads `config/professional-profile.md` (gitignored) and surfaces real
+openings from the day's signals: Track A contract leads + Track B senior roles
+(senior floor enforced). Renders only when genuine openings appear; no fabrication.
+
+**Open follow-on (the real unlock):** current sources (Bluesky etc.) rarely carry
+actual job postings, so the section is usually empty. To feed Track B properly,
+add dedicated job/gig sources — the profile references Apify Google Jobs Actor,
+Creative Circle, and LinkedIn. Adding job-board RSS / an Apify connector would
+make this section consistently useful rather than occasional.
 
 ## Cross-day momentum
 Persist what's been surfaced so trending stories don't repeat and the brief can
