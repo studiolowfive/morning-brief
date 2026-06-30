@@ -117,18 +117,45 @@ export async function getMessageReactions(messageId) {
   return fetchJson(url, { headers: clickupHeaders() });
 }
 
-// Post the brief as a header message plus one reactable message per signal.
-// Each signal is formatted with blank-line spacing (ClickUp collapses single
-// line breaks) and a cleaned single-line title (raw posts carry their own
-// newlines). Returns the per-signal entries (with message ids) for the index.
-export async function postBriefWithFeedback(report, selected, interpretations = new Map()) {
-  const header = await postChannelMessage(
-    [
-      `# ${report.title}`,
-      "React on each signal to tune tomorrow's brief:",
-      "🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it   ·   🔁 repeat, stop showing"
-    ].join("\n\n")
-  );
+function formatRolesMessage(roles) {
+  const lines = ["## 💼 Roles & Gigs"];
+  for (const r of roles) {
+    const track = r.track ? `**[${r.track}]** ` : "";
+    lines.push(`${track}${r.opportunity}`);
+    const sub = [];
+    if (r.why_fit) sub.push(`_Fit:_ ${r.why_fit}`);
+    if (r.action) sub.push(`_Move:_ ${r.action}`);
+    if (r.note) sub.push(`⚠️ ${r.note}`);
+    if (r.link) sub.push(r.link);
+    if (sub.length) lines.push(sub.join("\n"));
+  }
+  return lines.join("\n\n");
+}
+
+function formatAnglesMessage(brief) {
+  const lines = [];
+  if (brief.linkedinAngles?.length) {
+    lines.push("## ✍️ LinkedIn Angles");
+    brief.linkedinAngles.forEach((a) => lines.push(`- "${a}"`));
+  }
+  if (brief.videoIdeas?.length) {
+    lines.push("## 🎬 Short-Form Video Ideas");
+    brief.videoIdeas.forEach((v) => lines.push(`- **${v.hook}** ${v.premise} _(${v.fit})_`));
+  }
+  return lines.join("\n\n");
+}
+
+// Post the full brief to the channel: a header carrying the strategic lead (one
+// thing + executive summary), one reactable message per market signal (for the
+// feedback loop), then Roles & Gigs and Content Angles as their own messages.
+// Returns the per-signal entries (with message ids) for the index.
+export async function postBriefWithFeedback(report, selected, interpretations = new Map(), brief = null) {
+  const headerBlocks = [`# ${report.title}`];
+  if (brief?.oneThing) headerBlocks.push(`🎯 **One thing today:** ${brief.oneThing}`);
+  if (brief?.executiveSummary) headerBlocks.push(`**The read:** ${brief.executiveSummary}`);
+  headerBlocks.push("React on each signal below to tune tomorrow's brief:");
+  headerBlocks.push("🔥 more like this   ·   👍 useful   ·   👎 noise   ·   ✅ acted on it   ·   🔁 repeat, stop showing");
+  const header = await postChannelMessage(headerBlocks.join("\n\n"));
   const parentId = header.id;
 
   const entries = [];
@@ -159,5 +186,24 @@ export async function postBriefWithFeedback(report, selected, interpretations = 
       entries.push({ messageId: null, signalId: signal.id, error: error.message });
     }
   }
+
+  // Roles & Gigs and Content Angles — posted as their own messages so the brief's
+  // job opportunities and ready-to-use content actually reach the channel.
+  if (brief?.roles?.length) {
+    try {
+      await postChannelMessage(formatRolesMessage(brief.roles), parentId);
+    } catch (error) {
+      // non-fatal
+    }
+  }
+  const anglesMsg = brief ? formatAnglesMessage(brief) : "";
+  if (anglesMsg) {
+    try {
+      await postChannelMessage(anglesMsg, parentId);
+    } catch (error) {
+      // non-fatal
+    }
+  }
+
   return { destination: "channel", headerId: parentId, entries };
 }

@@ -188,10 +188,10 @@ async function buildReport({ allSignals = false } = {}) {
   const markdownPath = writeText(`report-${report.generatedAt.slice(0, 10)}.md`, report.body);
   // Persist the exact built brief so `publish` can post it without rebuilding.
   const interpObj = options.interpretations ? Object.fromEntries(options.interpretations) : null;
-  writeJson("last-brief.json", { report, selected, interpretations: interpObj, jobs });
+  writeJson("last-brief.json", { report, selected, interpretations: interpObj, jobs, llmBrief: options.llmBrief ?? null });
   logger.info(`Generated report with ${report.signalCount} signals`, { markdownPath, llm: llmActive, jobs: jobs.length });
   console.log(report.body);
-  return { report, selected, interpretations: options.interpretations ?? new Map(), jobs };
+  return { report, selected, interpretations: options.interpretations ?? new Map(), jobs, llmBrief: options.llmBrief ?? null };
 }
 
 async function postClickUp() {
@@ -205,7 +205,7 @@ async function postClickUp() {
   logger.info(`Posted report to ClickUp ${result.destination}`, { channelError: result.channelError });
 }
 
-async function postDaily(report, selected, interpretations = new Map(), jobs = []) {
+async function postDaily(report, selected, interpretations = new Map(), jobs = [], llmBrief = null) {
   // Mark both the shown market signals and the job pool as surfaced, so neither
   // repeats in a later brief (jobs aren't posted individually but are still shown
   // via the Roles & Gigs section).
@@ -215,7 +215,7 @@ async function postDaily(report, selected, interpretations = new Map(), jobs = [
   // single whole-report post if feedback is off or channel posting fails.
   if (process.env.FEEDBACK_ENABLED !== "false" && selected.length) {
     try {
-      const { entries } = await postBriefWithFeedback(report, selected, interpretations);
+      const { entries } = await postBriefWithFeedback(report, selected, interpretations, llmBrief);
       recordPostedSignals(entries.filter((entry) => entry.messageId));
       markSurfaced();
       const posted = entries.filter((entry) => entry.messageId).length;
@@ -238,10 +238,10 @@ async function daily() {
     logger.info("Weekend collection complete. No report will be posted Saturday or Sunday.");
     return;
   }
-  const { report, selected, interpretations, jobs } = await buildReport();
+  const { report, selected, interpretations, jobs, llmBrief } = await buildReport();
   if (!selected.length) logger.warn("Daily report has no selected signals. Posting is still allowed, but review connector health.");
   if (!envBool("MORNING_BRIEF_DRY_RUN", false)) {
-    await postDaily(report, selected, interpretations, jobs);
+    await postDaily(report, selected, interpretations, jobs, llmBrief);
   } else {
     logger.info("Dry run enabled; daily report was not posted.");
   }
@@ -257,7 +257,7 @@ async function publish() {
     return;
   }
   const interpretations = data.interpretations ? new Map(Object.entries(data.interpretations)) : new Map();
-  await postDaily(data.report, data.selected ?? [], interpretations, data.jobs ?? []);
+  await postDaily(data.report, data.selected ?? [], interpretations, data.jobs ?? [], data.llmBrief ?? null);
 }
 
 async function feedback() {
