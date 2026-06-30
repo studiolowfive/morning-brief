@@ -107,25 +107,57 @@
       "name": "Bluesky: Indie Games",
       "query": "\"indie game\"",
       "topics": ["indie games", "mobile games", "Chain Chasers"]
+    },
+    {
+      "id": "bluesky-lead-brand-strategist",
+      "enabled": true,
+      "name": "Bluesky lead: need a brand strategist",
+      "query": "\"need a brand strategist\"",
+      "topics": ["small business marketing", "brand voice"]
+    },
+    {
+      "id": "bluesky-lead-copywriter",
+      "enabled": true,
+      "name": "Bluesky lead: hiring a copywriter",
+      "query": "\"hiring a copywriter\"",
+      "topics": ["copywriting", "small business marketing"]
+    },
+    {
+      "id": "bluesky-lead-fractional",
+      "enabled": true,
+      "name": "Bluesky lead: looking for a fractional",
+      "query": "\"looking for a fractional\"",
+      "topics": ["small business marketing"]
     }
   ],
   "jobs": [
     {
-      "id": "jobs-director-brand-mn",
+      "id": "jobs-jsearch-director-brand-mn",
+      "provider": "jsearch",
       "enabled": true,
       "name": "Jobs: Director of Brand (Minneapolis)",
       "query": "Director of Brand Minneapolis",
       "topics": ["role"]
     },
     {
-      "id": "jobs-creative-director-mn",
+      "id": "jobs-jsearch-creative-director-mn",
+      "provider": "jsearch",
       "enabled": true,
       "name": "Jobs: Creative Director (Minneapolis)",
       "query": "Creative Director brand Minneapolis",
       "topics": ["role"]
     },
     {
-      "id": "jobs-senior-brand-strategist-remote",
+      "id": "jobs-jsearch-head-of-brand",
+      "provider": "jsearch",
+      "enabled": true,
+      "name": "Jobs: Head of Brand (Minneapolis)",
+      "query": "Head of Brand Minneapolis",
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-jsearch-brand-strategist-remote",
+      "provider": "jsearch",
       "enabled": true,
       "name": "Jobs: Senior Brand Strategist (remote)",
       "query": "Senior Brand Strategist",
@@ -133,11 +165,45 @@
       "topics": ["role"]
     },
     {
-      "id": "jobs-fractional-head-brand-remote",
+      "id": "jobs-jsearch-content-strategy-director-remote",
+      "provider": "jsearch",
       "enabled": true,
-      "name": "Jobs: Fractional Head of Brand (remote)",
-      "query": "fractional head of brand",
+      "name": "Jobs: Content Strategy Director (remote)",
+      "query": "Content Strategy Director",
       "remoteOnly": true,
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-jsearch-fractional-cmo-remote",
+      "provider": "jsearch",
+      "enabled": true,
+      "name": "Jobs: Fractional CMO / Head of Brand (remote)",
+      "query": "fractional CMO brand",
+      "remoteOnly": true,
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-wwr-marketing",
+      "provider": "wwr",
+      "enabled": true,
+      "name": "We Work Remotely: Sales & Marketing",
+      "url": "https://weworkremotely.com/categories/remote-sales-and-marketing-jobs.rss",
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-wwr-design",
+      "provider": "wwr",
+      "enabled": true,
+      "name": "We Work Remotely: Design",
+      "url": "https://weworkremotely.com/categories/remote-design-jobs.rss",
+      "topics": ["role"]
+    },
+    {
+      "id": "jobs-remotive-marketing",
+      "provider": "remotive",
+      "enabled": true,
+      "name": "Remotive: Marketing",
+      "category": "marketing",
       "topics": ["role"]
     }
   ],
