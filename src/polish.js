@@ -158,6 +158,8 @@ You are also the QUALITY GATE. For each signal set:
 - "quality" (1-5, BE STINGY): 5 = a specific, genuine audience pain/opinion/debate squarely on brand voice, AI content quality, copywriting, small-business marketing, or content/prompt workflows that Alex could build a post or product angle on; 3 = related and mildly useful; 2 = merely mentions a topic keyword (a listing, announcement, tourism/event post) with no audience insight; 1 = noise. Disc golf / indie games are secondary — only 4+ with real community sentiment or a concrete design insight, never for venue listings or generic mentions.
 - "keep" (boolean): FALSE if the signal is not worth Alex's attention (keyword-mention only, listing/announcement, off-thesis, or just weak). Drop freely — a short sharp brief beats a padded one. It is fine to keep only 2-3, or even fewer.
 
+Aim for a BLEND of source types in what you keep: pair live audience conversation (social posts) with substantive news and industry/blog developments. Don't keep several near-identical social takes when a strong news article or analysis piece offers a different, equally-relevant angle — variety of perspective makes the brief richer.
+
 Refer to signals by their SUBJECT, never by number, in one_thing / executive_summary / linkedin_angles / video_ideas (the reader does not see your numbering).${rolesInstruction}${rolesBlock}${jobsBlock}
 
 Return ONLY a JSON object, no prose around it:
