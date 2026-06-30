@@ -137,7 +137,7 @@ function buildPolishPrompt(signals, dayStrength = "moderate", jobs = []) {
     ? `,\n  "roles": [{"track": "A (contract lead) | B (role)", "opportunity": "what it is and where, in one line", "why_fit": "1 line tying it to Alex's profile", "action": "the concrete move (DM/apply/pitch)", "link": "source url", "note": "ONLY if Track B and at/below the senior floor: 'borderline — your call' with the reason"}]`
     : "";
   const rolesInstruction = profile
-    ? `\n\nROLES & GIGS: surface real openings Alex could pitch for or apply to. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface on fit). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior, or flag borderline with "note"). Follow the HARD RULES in the profile EXACTLY, including any do-not-surface rules: never invent a listing, only use openings actually present here with their link. If nothing qualifies, return "roles": [] — do not manufacture opportunities.`
+    ? `\n\nROLES & GIGS: surface ONLY the cream of the crop — the few strongest-fit openings genuinely worth Alex's attention today, ranked best-first. Aim for 3-5 max; fewer is better, and zero is fine on a weak day. Do NOT list every posting that technically clears the floor — this is a curated shortlist, not a job board. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface only strong leads). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior; include a borderline "note" only for a genuinely worth-a-look case, not as padding). Follow the HARD RULES in the profile EXACTLY, including any do-not-surface rules: never invent a listing, only use openings actually present here with their link. If nothing is genuinely strong, return "roles": [] — do not manufacture opportunities.`
     : "";
 
 
@@ -207,7 +207,8 @@ export async function polishBrief(signals, { dayStrength = "moderate", jobs = []
       executiveSummary: parsed.executive_summary,
       linkedinAngles: Array.isArray(parsed.linkedin_angles) ? parsed.linkedin_angles : [],
       videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : [],
-      roles: Array.isArray(parsed.roles) ? parsed.roles : []
+      // Cap the shortlist regardless of what the model returns — cream of the crop.
+      roles: (Array.isArray(parsed.roles) ? parsed.roles : []).slice(0, 5)
     };
     logger.info(`Claude polish complete for ${interpretations.size} signals`);
     return { interpretations, brief };
