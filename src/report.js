@@ -269,10 +269,16 @@ export function generateReport(scoredSignals, options = {}) {
   // Roles & Gigs: real openings from today's signals matched to Alex's profile.
   if (llmBrief?.roles?.length) {
     lines.push("## Roles & Gigs");
+    if (llmBrief.rolesTopPick?.opportunity) {
+      lines.push(`🎯 Today's apply: ${llmBrief.rolesTopPick.opportunity}`);
+      if (llmBrief.rolesTopPick.why) lines.push(`  - Why now: ${llmBrief.rolesTopPick.why}`);
+      lines.push("");
+    }
     llmBrief.roles.forEach((role) => {
       const track = role.track ? `[${role.track}] ` : "";
       lines.push(`- ${track}${role.opportunity}`);
       if (role.why_fit) lines.push(`  - Fit: ${role.why_fit}`);
+      if (role.pitch_as) lines.push(`  - Pitch as contract/fractional: ${role.pitch_as}`);
       if (role.action) lines.push(`  - Move: ${role.action}`);
       if (role.note) lines.push(`  - ⚠️ ${role.note}`);
       if (role.link) lines.push(`  - ${role.link}`);

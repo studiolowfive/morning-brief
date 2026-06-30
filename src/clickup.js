@@ -117,13 +117,17 @@ export async function getMessageReactions(messageId) {
   return fetchJson(url, { headers: clickupHeaders() });
 }
 
-function formatRolesMessage(roles) {
+function formatRolesMessage(roles, topPick) {
   const lines = ["## 💼 Roles & Gigs"];
+  if (topPick?.opportunity) {
+    lines.push(`🎯 **Today's apply:** ${topPick.opportunity}${topPick.why ? `\n_Why now:_ ${topPick.why}` : ""}`);
+  }
   for (const r of roles) {
     const track = r.track ? `**[${r.track}]** ` : "";
     lines.push(`${track}${r.opportunity}`);
     const sub = [];
     if (r.why_fit) sub.push(`_Fit:_ ${r.why_fit}`);
+    if (r.pitch_as) sub.push(`_Pitch as contract/fractional:_ ${r.pitch_as}`);
     if (r.action) sub.push(`_Move:_ ${r.action}`);
     if (r.note) sub.push(`⚠️ ${r.note}`);
     if (r.link) sub.push(r.link);
@@ -191,7 +195,7 @@ export async function postBriefWithFeedback(report, selected, interpretations = 
   // job opportunities and ready-to-use content actually reach the channel.
   if (brief?.roles?.length) {
     try {
-      await postChannelMessage(formatRolesMessage(brief.roles), parentId);
+      await postChannelMessage(formatRolesMessage(brief.roles, brief.rolesTopPick), parentId);
     } catch (error) {
       // non-fatal
     }
