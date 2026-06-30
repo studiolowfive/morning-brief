@@ -78,7 +78,7 @@ export function isPolishEnabled() {
   return process.env.LLM_POLISH_PROVIDER === "claude-cli" && Boolean(resolveClaudeCli());
 }
 
-function runClaude(prompt, { timeoutMs = 150000 } = {}) {
+function runClaude(prompt, { timeoutMs = 300000 } = {}) {
   const exe = resolveClaudeCli();
   if (!exe) return Promise.reject(new Error("Claude CLI not found"));
   return new Promise((resolve, reject) => {
@@ -137,7 +137,7 @@ function buildPolishPrompt(signals, dayStrength = "moderate", jobs = []) {
     ? `,\n  "roles": [{"track": "A (contract lead) | B (role)", "opportunity": "what it is and where, in one line", "why_fit": "1 line tying it to Alex's profile", "action": "the concrete move (DM/apply/pitch)", "link": "source url", "note": "ONLY if Track B and at/below the senior floor: 'borderline — your call' with the reason"}]`
     : "";
   const rolesInstruction = profile
-    ? `\n\nROLES & GIGS: surface ONLY the cream of the crop — the few strongest-fit openings genuinely worth Alex's attention today, ranked best-first. Aim for 3-5 max; fewer is better, and zero is fine on a weak day. Do NOT list every posting that technically clears the floor — this is a curated shortlist, not a job board. Track A = the MARKET SIGNALS where someone needs brand/voice/copy/strategy/fractional help (surface only strong leads). Track B = the JOB LISTINGS below (apply the senior floor — drop sub-senior; include a borderline "note" only for a genuinely worth-a-look case, not as padding). Follow the HARD RULES in the profile EXACTLY, including any do-not-surface rules: never invent a listing, only use openings actually present here with their link. If nothing is genuinely strong, return "roles": [] — do not manufacture opportunities.`
+    ? `\n\nROLES & GIGS: surface a curated shortlist of STRONG-FIT opportunities — aim for about 5 (up to 7), ranked best-fit first. Go below 5 only if the pool genuinely lacks that many strong fits; never pad with weak ones. "Strong fit" means real alignment with Alex's profile, and his fit is BROAD — do NOT narrow to prestigious Creative Director roles. Range across his actual range: Director/Head/VP of Brand, Senior Brand or Creative Strategist, Content Strategy Director, senior or contract copywriting, Fractional CMO/Head of Brand, AI-forward content leadership, and Track A contract leads (someone needing brand/voice/copy/strategy/fractional help in the MARKET SIGNALS). A well-fitting Senior Brand Strategist, Content Strategy Director, or fractional engagement is as valuable as a flashy CD title — don't over-index on the most prestigious listing. Track B = the JOB LISTINGS below: still respect the senior floor (drop clearly sub-senior; add a borderline "note" only for a genuinely worth-a-look case). Follow the profile's HARD RULES EXACTLY, including any do-not-surface rules: never invent a listing, only use openings present here with their link. If there genuinely aren't strong fits, return fewer (or []) — do not manufacture.`
     : "";
 
 
@@ -207,8 +207,8 @@ export async function polishBrief(signals, { dayStrength = "moderate", jobs = []
       executiveSummary: parsed.executive_summary,
       linkedinAngles: Array.isArray(parsed.linkedin_angles) ? parsed.linkedin_angles : [],
       videoIdeas: Array.isArray(parsed.video_ideas) ? parsed.video_ideas : [],
-      // Cap the shortlist regardless of what the model returns — cream of the crop.
-      roles: (Array.isArray(parsed.roles) ? parsed.roles : []).slice(0, 5)
+      // Curated shortlist: target ~5, hard backstop so it never balloons.
+      roles: (Array.isArray(parsed.roles) ? parsed.roles : []).slice(0, 8)
     };
     logger.info(`Claude polish complete for ${interpretations.size} signals`);
     return { interpretations, brief };

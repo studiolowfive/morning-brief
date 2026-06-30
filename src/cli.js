@@ -121,7 +121,7 @@ async function buildReport({ allSignals = false } = {}) {
   // stay eligible (not marked surfaced) and cycle into later briefs.
   let jobs = scored.filter((s) => s.connector === "jobs");
   scored = scored.filter((s) => s.connector !== "jobs");
-  jobs = jobs.sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0)).slice(0, envInt("JOBS_MAX_TO_GATE", 30));
+  jobs = jobs.sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0)).slice(0, envInt("JOBS_MAX_TO_GATE", 40));
 
   const options = { allSignals, connectorStatus, now, feedbackActive: learned.active };
 
