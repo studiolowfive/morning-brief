@@ -8,7 +8,7 @@ import { collectFromConfig } from "./connectors/index.js";
 import { appendJsonl, readJsonl, readJson, readLatestReport, readManualSignals, writeText, writeJson, compactSignals } from "./storage.js";
 import { dedupeSignals } from "./dedupe.js";
 import { scoreSignals } from "./scoring.js";
-import { generateReport, selectReportSignals, assessDayStrength } from "./report.js";
+import { generateReport, selectReportSignals, assessDayStrength, capByConnector } from "./report.js";
 import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
@@ -151,7 +151,9 @@ async function buildReport({ allSignals = false } = {}) {
       options.llmModel = process.env.OLLAMA_MODEL || "qwen3:8b";
 
       const usePolish = isPolishEnabled() && !allSignals;
-      const candidates = usePolish ? selectReportSignals(scored, now, { max: finalMax * 2 }) : selected;
+      // Balanced candidate menu (cap Bluesky to ~half) so Claude actually sees the
+      // news/blogs/reddit, not just the chatty social firehose.
+      const candidates = usePolish ? selectReportSignals(scored, now, { max: finalMax * 2, maxFrac: 0.5 }) : selected;
 
       let polished = null;
       if (usePolish && candidates.length) {
@@ -159,15 +161,16 @@ async function buildReport({ allSignals = false } = {}) {
       }
 
       if (polished) {
-        // Claude is the gate: keep what it kept, rank by its quality, cap.
-        selected = candidates
+        // Claude is the gate: keep what it kept, rank by its quality, then cap
+        // per-connector so Best Signals is a blend, not 6 Bluesky posts.
+        const kept = candidates
           .map((s) => {
             const v = polished.interpretations.get(s.id);
             return { ...s, quality: v?.quality ?? s.quality, _keep: v ? v.keep : true };
           })
           .filter((s) => s._keep)
-          .sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0) || b.totalScore - a.totalScore)
-          .slice(0, finalMax);
+          .sort((a, b) => (b.quality ?? 0) - (a.quality ?? 0) || b.totalScore - a.totalScore);
+        selected = capByConnector(kept, finalMax, 0.6);
         options.interpretations = polished.interpretations;
         options.llmBrief = polished.brief;
         options.polishModel = process.env.CLAUDE_CLI_MODEL || "claude-cli";

@@ -32,19 +32,44 @@ function qualityBar() {
   return Number.isFinite(value) ? value : 3;
 }
 
-// Quality-gated selection: only signals that clear the bar, ranked, capped — and
-// we DON'T backfill to a fixed count. A thin day returns few (or zero) signals on
-// purpose, so the brief reads as thin instead of padded.
+// Take from a ranked list while capping how many come from any single connector,
+// so one chatty source (e.g. Bluesky) can't crowd out news/blogs/reddit. Backfills
+// from the capped-out remainder only if needed to reach max.
+export function capByConnector(rankedSignals, max, maxFrac = 0.6) {
+  const perCap = Math.max(1, Math.ceil(max * maxFrac));
+  const counts = {};
+  const picked = [];
+  const overflow = [];
+  for (const signal of rankedSignals) {
+    if (picked.length >= max) break;
+    const key = signal.connector || "other";
+    if ((counts[key] ?? 0) < perCap) {
+      picked.push(signal);
+      counts[key] = (counts[key] ?? 0) + 1;
+    } else {
+      overflow.push(signal);
+    }
+  }
+  for (const signal of overflow) {
+    if (picked.length >= max) break;
+    picked.push(signal);
+  }
+  return picked;
+}
+
+// Quality-gated selection: only signals that clear the bar, ranked, then capped
+// per-connector for source diversity. We DON'T backfill to a fixed count — a thin
+// day returns few (or zero) signals on purpose, so the brief reads as thin.
 export function selectReportSignals(signals, now = new Date(), opts = {}) {
   const start = reportWindowStart(now);
   const max = opts.max ?? (now.getDay() === 1 ? 8 : 6);
   const bar = qualityBar();
-  return signals
+  const ranked = signals
     .filter((signal) => signalWindowDate(signal) >= start)
     .map((signal) => ({ ...signal, quality: signalQuality(signal) }))
     .filter((signal) => signal.quality >= bar)
-    .sort((a, b) => b.quality - a.quality || b.totalScore - a.totalScore)
-    .slice(0, max);
+    .sort((a, b) => b.quality - a.quality || b.totalScore - a.totalScore);
+  return capByConnector(ranked, max, opts.maxFrac ?? 0.6);
 }
 
 // How strong is today, used to keep the brief honest (and suppress speculative

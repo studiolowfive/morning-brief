@@ -20,6 +20,78 @@
       "name": "Product Hunt",
       "url": "https://www.producthunt.com/feed",
       "topics": ["digital products", "indie launches", "workflow tools"]
+    },
+
+    {
+      "id": "seth-godin",
+      "enabled": true,
+      "name": "Seth Godin",
+      "url": "https://seths.blog/feed/",
+      "topics": ["brand voice", "marketing", "copywriting"]
+    },
+    {
+      "id": "copyblogger",
+      "enabled": true,
+      "name": "Copyblogger",
+      "url": "https://copyblogger.com/feed/",
+      "topics": ["copywriting", "content", "brand voice"]
+    },
+    {
+      "id": "marketing-ai-institute",
+      "enabled": true,
+      "name": "Marketing AI Institute",
+      "url": "https://www.marketingaiinstitute.com/blog/rss.xml",
+      "topics": ["ai-assisted content", "brand voice", "marketing"]
+    },
+    {
+      "id": "game-developer",
+      "enabled": true,
+      "name": "Game Developer",
+      "url": "https://www.gamedeveloper.com/rss.xml",
+      "topics": ["indie games", "Chain Chasers"]
+    },
+    {
+      "id": "pocket-gamer",
+      "enabled": true,
+      "name": "Pocket Gamer",
+      "url": "https://www.pocketgamer.com/index.rss",
+      "topics": ["mobile games", "indie games", "Chain Chasers"]
+    },
+
+    {
+      "id": "gnews-brand-voice",
+      "enabled": true,
+      "name": "Google News: Brand Voice & AI",
+      "url": "https://news.google.com/rss/search?q=%22brand+voice%22+AI&hl=en-US&gl=US&ceid=US:en",
+      "topics": ["brand voice", "ai-assisted content"]
+    },
+    {
+      "id": "gnews-ai-content-marketing",
+      "enabled": true,
+      "name": "Google News: AI Content Marketing",
+      "url": "https://news.google.com/rss/search?q=%22AI+content%22+marketing&hl=en-US&gl=US&ceid=US:en",
+      "topics": ["ai-assisted content", "marketing"]
+    },
+    {
+      "id": "gnews-small-business-marketing",
+      "enabled": true,
+      "name": "Google News: Small Business Marketing",
+      "url": "https://news.google.com/rss/search?q=%22small+business%22+marketing&hl=en-US&gl=US&ceid=US:en",
+      "topics": ["small business marketing"]
+    },
+    {
+      "id": "gnews-disc-golf",
+      "enabled": true,
+      "name": "Google News: Disc Golf",
+      "url": "https://news.google.com/rss/search?q=%22disc+golf%22&hl=en-US&gl=US&ceid=US:en",
+      "topics": ["disc golf", "Chain Chasers"]
+    },
+    {
+      "id": "gnews-indie-games",
+      "enabled": true,
+      "name": "Google News: Indie Games",
+      "url": "https://news.google.com/rss/search?q=%22indie+game%22&hl=en-US&gl=US&ceid=US:en",
+      "topics": ["indie games", "mobile games", "Chain Chasers"]
     }
   ],
   "reddit": [
