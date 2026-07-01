@@ -19,6 +19,13 @@ function signalWindowDate(signal) {
   return new Date(signal.collectedAt);
 }
 
+// Signals recent enough to appear in today's brief. Only these are ever
+// selectable, so it's the set worth spending LLM classification on.
+export function inReportWindow(signals, now = new Date()) {
+  const start = reportWindowStart(now);
+  return signals.filter((signal) => signalWindowDate(signal) >= start);
+}
+
 // A 1-5 quality read per signal. Prefer the LLM's relevance grade; fall back to
 // the strongest keyword score so the gate still works without the LLM.
 export function signalQuality(signal) {

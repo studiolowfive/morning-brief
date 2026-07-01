@@ -8,7 +8,7 @@ import { collectFromConfig } from "./connectors/index.js";
 import { appendJsonl, readJsonl, readJson, readLatestReport, readManualSignals, writeText, writeJson, compactSignals } from "./storage.js";
 import { dedupeSignals } from "./dedupe.js";
 import { scoreSignals } from "./scoring.js";
-import { generateReport, selectReportSignals, assessDayStrength, capByConnector } from "./report.js";
+import { generateReport, selectReportSignals, assessDayStrength, capByConnector, inReportWindow } from "./report.js";
 import { postReport, postBriefWithFeedback } from "./clickup.js";
 import { isAvailable as llmAvailable, classifyAndFilter, interpretSignals, synthesizeBrief, unload as llmUnload } from "./llm.js";
 import { isPolishEnabled, polishBrief } from "./polish.js";
@@ -122,6 +122,16 @@ async function buildReport({ allSignals = false } = {}) {
   let jobs = scored.filter((s) => s.connector === "jobs");
   scored = scored.filter((s) => s.connector !== "jobs");
   jobs = jobs.sort((a, b) => (b.totalScore ?? 0) - (a.totalScore ?? 0)).slice(0, envInt("JOBS_MAX_TO_GATE", 40));
+
+  // Only in-window signals can be selected, so only classify those — avoids
+  // running Qwen over the whole retained store (keeps runs fast as it grows).
+  if (!allSignals) {
+    const beforeWindow = scored.length;
+    scored = inReportWindow(scored, now);
+    if (beforeWindow !== scored.length) {
+      logger.info(`Window filter: ${scored.length} of ${beforeWindow} market signals in report window`);
+    }
+  }
 
   const options = { allSignals, connectorStatus, now, feedbackActive: learned.active };
 
