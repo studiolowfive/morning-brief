@@ -143,17 +143,17 @@ The cadence logic is in `src/cli.js` and `src/report.js`.
 
 ### Scheduling (Windows)
 
-A `run-daily.cmd` launcher runs `node src/cli.js daily` from the project folder and logs to `logs/scheduler.log`. Register it to run every morning with PowerShell:
+`run-daily.cmd` runs `node src/cli.js daily` from the project folder and logs to `logs/scheduler.log`. To avoid a visible cmd window each run, the scheduled task launches it through `run-daily-hidden.vbs` (window hidden, same interactive session so the GPU/Ollama/Claude CLI are available). Register it with PowerShell:
 
 ```powershell
-$action = New-ScheduledTaskAction -Execute "F:\Codex Sandbox\Morning Brief\run-daily.cmd"
+$action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument '"F:\Codex Sandbox\Morning Brief\run-daily-hidden.vbs"'
 $trigger = New-ScheduledTaskTrigger -Daily -At 7:00am
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1) -Hidden
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive
 Register-ScheduledTask -TaskName "Morning Brief" -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force
 ```
 
-It runs every day at 7am; the cadence logic (above) handles the weekend collect-only and the Monday catch-up. `-StartWhenAvailable` reruns a missed 7am start once the PC is back on, and `-LogonType Interactive` (run only when logged on) ensures access to the GPU, Ollama, and the Claude CLI.
+It runs every day at 7am; the cadence logic (above) handles the weekend collect-only and the Monday catch-up. `-StartWhenAvailable` reruns a missed 7am start once the PC is back on (so if the machine was asleep, it fires when you log in), and `-LogonType Interactive` (run only when logged on) ensures access to the GPU, Ollama, and the Claude CLI.
 
 ## Troubleshooting
 
